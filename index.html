@@ -206,36 +206,60 @@ function agruparLinhasPdf(items){
  rows.forEach(r=>r.a.sort((a,b)=>a.x-b.x));return rows.sort((a,b)=>b.y-a.y)
 }
 function parsePedidoPdf(pages,fileName){
- let pageLines=pages.map(items=>agruparLinhasPdf(items).map(r=>pdfNormaliza(r.a.map(z=>z.t).join(' '))).filter(Boolean));
+ let pageRows=pages.map(items=>agruparLinhasPdf(items));
+ let pageLines=pageRows.map(rows=>rows.map(r=>pdfNormaliza(r.a.map(z=>z.t).join(' '))).filter(Boolean));
  let lines=pageLines.flat(), text=pdfNormaliza(lines.join(' '));
  let hm=text.match(/DADOS DO PEDIDO\s*N[º°]?\s*(\d+)\s*-\s*(\d{2}\/\d{2}\/\d{4})/i);
  if(!hm){let fm=String(fileName||'').match(/Pedido\s*(\d+)/i);hm=fm?[null,fm[1],null]:null}
- // Cabeçalho: procura a linha visual, sem depender da ordem global dos objetos do PDF.
- let cl=lines.find(x=>/^Cliente\s*:/i.test(x))||'';
- let cm=cl.match(/^Cliente\s*:\s*\d+\s*-\s*(.*?)(?=\s+CNPJ\/CPF\s*:|$)/i);
- let cliente=cm?.[1]?.trim()||'';
+
+ // Cliente: primeiro tenta pela linha reconstruída; depois usa os objetos próximos do rótulo Cliente.
+ let cliente='';
+ for(let rows of pageRows){
+   let r=rows.find(r=>r.a.some(z=>/^Cliente\s*:/i.test(z.t)));
+   if(!r)continue;
+   let linha=pdfNormaliza(r.a.map(z=>z.t).join(' '));
+   let m=linha.match(/Cliente\s*:\s*\d+\s*-\s*(.*?)(?=\s+CNPJ\/CPF\s*:|$)/i);
+   if(m?.[1]){cliente=m[1].trim();break}
+   let idx=r.a.findIndex(z=>/^Cliente\s*:/i.test(z.t));
+   let seg=pdfNormaliza(r.a.slice(idx).map(z=>z.t).join(' '));
+   m=seg.match(/Cliente\s*:\s*\d+\s*-\s*(.*?)(?=\s+CNPJ\/CPF\s*:|$)/i);
+   if(m?.[1]){cliente=m[1].trim();break}
+ }
+ // fallback no texto corrido
+ if(!cliente){let m=text.match(/Cliente\s*:\s*\d+\s*-\s*(.*?)(?=\s+CNPJ\/CPF\s*:)/i);cliente=m?.[1]?.trim()||''}
+
+ let cidade='',uf='';
  let ce=lines.find(x=>/Cidade\s+Entrega\s*:/i.test(x))||'';
- let cidade=ce.match(/Cidade\s+Entrega\s*:\s*(.*?)\s*\/\s*([A-Z]{2})(?:\s|$)/i);
- if(!cidade){let cu=lines.find(x=>/Cidade\/UF\s*:/i.test(x))||'';cidade=cu.match(/Cidade\/UF\s*:\s*(.*?)\s*\/\s*([A-Z]{2})(?:\s|$)/i)}
+ let cm=ce.match(/Cidade\s+Entrega\s*:\s*(.*?)\s*\/\s*([A-Z]{2})(?:\s|$)/i);
+ if(!cm){let cu=lines.find(x=>/Cidade\/UF\s*:/i.test(x))||'';cm=cu.match(/Cidade\/UF\s*:\s*(.*?)\s*\/\s*([A-Z]{2})(?:\s|$)/i)}
+ if(cm){cidade=cm[1].trim();uf=cm[2]}
+
+ // Itens: usa coordenadas do PDF. Assim não depende de a descrição quebrar em 2/3 linhas.
  let itens=[];
- for(let ls of pageLines){
-   let ini=ls.findIndex(x=>/C[oó]d\.\s*Item/i.test(x)); if(ini<0) ini=0;
-   for(let i=ini+1;i<ls.length;i++){
-     let m=ls[i].match(/^\s*(\d{3,8})\s+(.*)$/); if(!m)continue;
-     let codigo=m[1], bloco=[m[2]];
-     for(let j=i+1;j<Math.min(ls.length,i+7);j++){if(/^TOTAIS\b/i.test(ls[j])||/^\d{3,8}\s+/.test(ls[j]))break;bloco.push(ls[j])}
-     let b=pdfNormaliza(bloco.join(' '));
-     // O relatório pode deixar UN/QTD na mesma linha do código ou em linha seguinte.
-     let uq=b.match(/\bUN\s+([\d.,]+)(?:\s+(\d{1,4}))?(?=\s+[\d.,]+|\s*$)/i);
-     if(!uq)continue;
-     let qtxt=uq[1]+(uq[2]||''), qtd=pdfNum(qtxt); if(!(qtd>0))continue;
-     let descricao=pdfNormaliza(b.slice(0,uq.index));
-     // Remove eventual coluna Ref. vazia e evita capturar cabeçalhos/rodapés.
-     if(!descricao||/^(TOTAIS|P[aá]gina)/i.test(descricao))continue;
-     if(!itens.some(x=>x.codigo===codigo))itens.push({codigo,descricao_pdf:descricao,quantidade:qtd});
+ for(let pi=0;pi<pages.length;pi++){
+   let items=pages[pi];
+   let cab=items.find(z=>/C[oó]d\.\s*Item/i.test(z.t));
+   let tot=items.find(z=>/^TOTAIS$/i.test(z.t));
+   if(!cab)continue;
+   let candidatos=items.filter(z=>/^\d{3,8}$/.test(z.t) && z.y<cab.y-2 && (!tot || z.y>tot.y+2));
+   for(let c of candidatos){
+     // Código fica na primeira coluna; ignora números das colunas financeiras.
+     if(c.x>90)continue;
+     let same=items.filter(z=>Math.abs(z.y-c.y)<3.2).sort((a,b)=>a.x-b.x);
+     let un=same.find(z=>/^UN$/i.test(z.t));
+     if(!un)continue;
+     let qtdItem=same.filter(z=>z.x>un.x && z.x<un.x+90 && /^[\d.,]+$/.test(z.t)).sort((a,b)=>a.x-b.x)[0];
+     if(!qtdItem)continue;
+     let qtd=pdfNum(qtdItem.t);if(!(qtd>0))continue;
+     let descParts=same.filter(z=>z.x>c.x+10 && z.x<un.x-2).map(z=>z.t);
+     // acrescenta continuação da descrição nas linhas imediatamente abaixo, na mesma faixa horizontal
+     let abaixo=items.filter(z=>z.y<c.y-2 && z.y>c.y-32 && z.x>c.x+10 && z.x<un.x-2).sort((a,b)=>b.y-a.y||a.x-b.x);
+     descParts.push(...abaixo.map(z=>z.t));
+     let descricao=pdfNormaliza(descParts.join(' '));
+     if(!itens.some(x=>x.codigo===c.t))itens.push({codigo:c.t,descricao_pdf:descricao,quantidade:qtd});
    }
  }
- return {arquivo:fileName,numero:hm?.[1]||'',data:pdfDataIso(hm?.[2]),cliente,cidade:cidade?.[1]?.trim()||'',uf:cidade?.[2]||'',itens}
+ return {arquivo:fileName,numero:hm?.[1]||'',data:pdfDataIso(hm?.[2]),cliente,cidade,uf,itens}
 }
 function validarPedidoPdf(p){
  let erros=[];p.existente=pedidos.find(x=>String(x.numero_pedido)===String(p.numero));
