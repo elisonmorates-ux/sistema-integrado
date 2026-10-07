@@ -1,0 +1,1298 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>V1.32.2 - EXTRAPLAST Integrado</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module"></script><style>
+*{box-sizing:border-box}body{margin:0;font:14px Arial;background:#f3f6f9;color:#172433}header{background:#123b63;color:white;padding:16px 22px;display:flex;justify-content:space-between}.app{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 55px)}nav{background:#102f4f;padding:12px}.nav{display:block;width:100%;border:0;background:transparent;color:#dbeafe;padding:12px;text-align:left;border-radius:7px;font-weight:bold;cursor:pointer}.nav.on,.nav:hover{background:#1f5f99}main{padding:20px;overflow:auto}.page{display:none}.page.on{display:block}.box,.card{background:white;border:1px solid #dce3ea;border-radius:10px;padding:15px;margin-bottom:12px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{font-size:26px;font-weight:bold}.muted{font-size:12px;color:#64748b}.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}label{display:block;font-size:12px;font-weight:bold;margin-bottom:4px}input,select,textarea{width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px}.actions{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}button{border:0;border-radius:6px;padding:9px 12px;font-weight:bold;cursor:pointer}.pri{background:#1f5f99;color:white}.sec{background:#e2e8f0}.del{background:#fee2e2;color:#991b1b}.tabs{display:flex;gap:7px;margin-bottom:10px}.tab{background:#e2e8f0}.tab.on{background:#1f5f99;color:white}.pane{display:none}.pane.on{display:block}.tw{overflow:auto;border:1px solid #dce3ea;border-radius:8px}table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;border-bottom:1px solid #e5e7eb;text-align:left;white-space:nowrap}th{background:#edf2f7}.badge{display:inline-block;padding:4px 7px;border-radius:99px;font-size:11px;font-weight:bold}.g{background:#dcfce7;color:#166534}.a{background:#ffedd5;color:#9a3412}.r{background:#fee2e2;color:#991b1b}.wms{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}.slot{background:white;border:2px solid #cbd5e1;border-radius:8px;padding:11px}.slot.LIVRE{border-color:#86efac}.slot.OCUPADO{border-color:#fca5a5}.slot.RESERVADO{border-color:#fdba74}.toast{display:none;position:fixed;right:18px;bottom:18px;background:#111827;color:white;padding:12px;border-radius:7px}@media(max-width:900px){.app{grid-template-columns:1fr}nav{display:flex;overflow:auto}.nav{min-width:max-content}.cards,.form{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.cards,.form{grid-template-columns:1fr}}
+</style></head><body><header><b>EXTRAPLAST · Sistema Integrado V1.32.2</b><button class="sec" onclick="sairSistema()" style="margin-right:8px">Sair</button><span id="conn">Conectando...</span></header><div class="app"><nav>
+<button class="nav on" data-p="dash" onclick="navMain('dash',this)">▦ Dashboard</button><button class="nav" data-p="ped" onclick="navMain('ped',this)">▣ Pedidos</button><button class="nav" data-p="est" onclick="navMain('est',this)">▤ Estoque</button><button class="nav" data-p="wms" onclick="navMain('wms',this)">▦ WMS</button><button class="nav" data-p="cargas" onclick="navMain('cargas',this)">▣ Cargas</button><button class="nav" data-p="almox" onclick="navMain('almox',this)">▥ Almoxarifado</button><button class="nav" data-p="cad" onclick="navMain('cad',this)">＋ Cadastros</button><button class="nav" id="navUsuarios" data-role-admin onclick="abrirGestaoUsuarios(this)">♙ Usuários</button><button class="nav" data-p="mov" onclick="navMain('mov',this)">↔ Movimentações</button></nav><main>
+<section id="dash" class="page on"><h2>Dashboard Geral</h2><div class="cards"><div class="card"><span class="muted">Pedidos</span><div class="metric" id="dPed">0</div></div><div class="card"><span class="muted">Produtos</span><div class="metric" id="dProd">0</div></div><div class="card"><span class="muted">Matérias-primas</span><div class="metric" id="dMp">0</div></div><div class="card"><span class="muted">Cargas</span><div class="metric" id="dCarga">0</div></div></div><div class="box"><h3>Visão Operacional</h3><div id="resumo"></div></div></section>
+<section id="ped" class="page"><h2>Pedidos</h2>
+<div class="box"><h3>Importar Pedidos PDF</h3><p class="muted">Importe um ou vários pedidos no modelo SOLLUTION COMPANY. O sistema confere o número do pedido, cliente, destino, códigos e quantidades antes de gravar.</p><div class="form"><div style="grid-column:span 2"><label>Arquivos PDF *</label><input id="pedPdfFiles" type="file" accept="application/pdf,.pdf" multiple></div><div><label>Ação</label><button class="pri" type="button" onclick="lerPedidosPdf()">Ler e conferir PDFs</button></div></div><div id="pedPdfStatus" class="muted" style="margin-top:10px"></div><div id="pedPdfPreview" style="margin-top:12px"></div><div class="actions"><button id="pedPdfImportar" class="pri" style="display:none" onclick="importarPedidosPdf()">Importar pedidos válidos</button><button id="pedPdfLimpar" class="sec" style="display:none" onclick="limparImportacaoPdf()">Limpar importação</button></div></div>
+<div class="box"><input id="pedId" type="hidden"><div class="form"><div><label>Pedido</label><input id="pedNum"></div><div><label>Cliente</label><input id="pedCli"></div><div><label>Data</label><input id="pedData" type="date"></div><div><label>Entrega</label><input id="pedEnt" type="date"></div><div><label>Cidade</label><input id="pedCid"></div><div><label>UF</label><input id="pedUf"></div><div><label>Prioridade</label><select id="pedPri"><option>NORMAL</option><option>ALTA</option><option>URGENTE</option></select></div><div><label>Status</label><select id="pedStatus"><option>ABERTO</option><option>EM PRODUÇÃO</option><option>PRONTO</option><option>FATURADO</option><option>EXPEDIDO</option></select></div></div><div class="actions"><button class="pri" onclick="novoPedido()">Novo</button><button class="pri" onclick="salvarPedido()">Salvar</button><button class="sec" onclick="addPedItem()">+ Item</button><button class="pri" onclick="reservarPedidoAtual()">Reservar Estoque PP</button><button class="sec" onclick="liberarPedidoAtual()">Liberar Reserva</button></div><div class="tw"><table><thead><tr><th>Produto</th><th>Descrição</th><th>Qtd. Pedida</th><th>Programado</th><th>Entregue</th><th>Saldo</th><th>PP disponível</th><th>Reservado</th><th>A produzir</th><th>Posições reservadas</th><th>Matéria-prima</th><th></th></tr></thead><tbody id="pedItens"></tbody></table></div></div><div class="box"><h3>Pedidos cadastrados</h3><div class="tw"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Entrega</th><th>Status</th><th></th></tr></thead><tbody id="pedLista"></tbody></table></div></div></section>
+<section id="est" class="page"><h2>Estoques</h2>
+<div class="box"><div class="tabs">
+<button class="tab on" onclick="stockView('PP',this)">PP · Produto Pronto</button>
+<button class="tab" onclick="stockView('MP',this)">MP · Matéria-Prima</button>
+</div></div>
+<div id="stockBody"></div></section>
+<section id="wms" class="page"><h2>WMS Flexível</h2><div class="box"><h3>Local de estoque</h3><div id="wEstoqueTabs" class="tabs">
+<button id="wEstPP" class="tab on" onclick="trocarLocalWms('PP')">PP · Produto Pronto</button>
+<button id="wEstMP" class="tab" onclick="trocarLocalWms('MP')">MP · Matéria-Prima</button>
+<button id="wEstPA" class="tab" onclick="trocarLocalWms('PA')">PA · Pátio</button>
+</div></div><div class="box wmsPP"><h3>WMS · Produto Pronto</h3><p>O endereçamento WMS é exclusivo do estoque PP. Padrão: <b>PP-COLUNA-ANDAR-POSIÇÃO</b> — exemplo <b>PP-1-2-18</b>.</p></div>
+<div class="tabs wmsPP" id="wmsNav"><button type="button" class="tab on" data-wms="wmMapa">Mapa / Posições</button><button type="button" class="tab" data-wms="wmLote">Cadastro em Lote</button><button type="button" class="tab" data-wms="wmInv">Inventário WMS</button></div>
+<div id="wmMapa" class="wpanel wmsPP"><div class="box"><h3>Localizar no WMS</h3><div class="form"><div><label>Buscar código / descrição</label><input id="wBusca" placeholder="Código, descrição ou posição (ex.: PP-1-2-18)" oninput="renderWms()"></div><div><label>Família</label><select id="wFamilia" onchange="renderWms()"><option value="">Todas</option></select></div></div><div id="wBuscaResumo" class="muted" style="margin-top:8px"></div></div>
+<div id="wEstoqueSimples" style="display:none"></div><div class="box" id="wPPcadastro"><h3>Cadastrar posição PP</h3><p class="muted">Estoque fixo: <b>PP · Produto Pronto</b>. O código é gerado automaticamente no padrão PP-COLUNA-ANDAR-POSIÇÃO.</p><div class="form"><div><label>Coluna *</label><input id="wCol" type="number" min="1" oninput="gerarCodigoPP()"></div><div><label>Andar *</label><input id="wAnd" type="number" min="1" oninput="gerarCodigoPP()"></div><div><label>Posição *</label><input id="wPos" type="number" min="1" oninput="gerarCodigoPP()"></div><div><label>Código gerado</label><input id="wCod" readonly placeholder="PP-1-2-18"></div><div><label>Capacidade</label><input id="wCap" type="number"></div></div><div class="actions"><button class="pri" onclick="salvarPosicao()">Criar Posição</button></div></div><div class="box" id="wPPmapa"><div id="wMapa" class="wms"></div></div></div>
+<div id="wmLote" class="wpanel" style="display:none"><div class="box"><h3>Cadastrar posições PP em lote</h3>
+<p class="muted">Gera automaticamente endereços no padrão <b>PP-COLUNA-ANDAR-POSIÇÃO</b>.</p>
+<div class="form">
+<div><label>Coluna inicial *</label><input id="gColIni" type="number" min="1" value="1"></div>
+<div><label>Coluna final *</label><input id="gColFim" type="number" min="1" value="1"></div>
+<div><label>Andar inicial *</label><input id="gAndIni" type="number" min="1" value="1"></div>
+<div><label>Andar final *</label><input id="gAndFim" type="number" min="1" value="1"></div>
+<div><label>Posição inicial *</label><input id="gPosIni" type="number" min="1" value="1"></div>
+<div><label>Posição final *</label><input id="gPosFim" type="number" min="1" value="10"></div>
+<div><label>Capacidade</label><input id="gCap" type="number" min="0"></div>
+</div>
+<div class="actions"><button class="sec" onclick="previewLotePP()">Visualizar</button><button class="pri" onclick="gerarPosicoes()">Criar posições em lote</button></div>
+<div id="gPreview" class="muted" style="margin-top:12px"></div></div></div>
+<div id="wmInv" class="wpanel" style="display:none"><div class="box"><h3>Sessão de Inventário</h3><div class="form"><div><label>Código</label><input id="invCod" placeholder="INV-OUT-2026"></div><div><label>Descrição</label><input id="invDesc"></div><div><label>Sessão aberta</label><select id="invSel" onchange="selecionarInventario()"></select></div></div><div class="actions"><button class="pri" onclick="criarInventario()">Criar Sessão</button></div></div><div class="box"><h3>Registrar Contagem</h3><div class="form"><div><label>Posição</label><select id="invEnd"></select></div><div><label>Tipo</label><select id="invTipo" onchange="preencherInvItens()"><option value="PRODUTO_PRONTO">Produto Pronto</option><option value="MATERIA_PRIMA">Matéria-Prima</option></select></div><div><label>Item</label><select id="invItem"></select></div><div><label>Lote</label><input id="invLote"></div><div><label>Quantidade contada</label><input id="invQtd" type="number" step=".01"></div><div><label>Observação</label><input id="invObs"></div></div><div class="actions"><button id="btnRegistrarContagem" class="pri" onclick="registrarContagem()">Registrar Contagem</button></div></div><div class="box"><h3>Conferência do Inventário</h3>
+<div class="actions"><button class="sec" onclick="listarContagens()">Atualizar Conferência</button><button class="pri" onclick="finalizarInventario()">Finalizar Inventário</button></div>
+<div class="tw"><table><thead><tr><th>Posição</th><th>Tipo</th><th>Item</th><th>Lote</th><th>Sistema</th><th>Contado</th><th>Diferença</th><th>Status</th><th>Ação</th></tr></thead><tbody id="invLista"></tbody></table></div>
+<p class="muted">Aprovar Ajuste altera o estoque oficial. Finalizar Inventário somente funciona quando todas as contagens estiverem aprovadas.</p></div></div>
+<div id="wmsMP" style="display:none">
+<div class="box"><h3>WMS · Matéria-Prima</h3><p>Endereçamento independente do estoque <b>MP</b>. Padrão: <b>MP-COLUNA-ANDAR-POSIÇÃO</b>.</p></div>
+<div class="tabs localWmsNav" data-local="MP"><button class="tab on" onclick="abrirPainelLocal('MP','mapa',this)">Mapa / Posições</button><button class="tab" onclick="abrirPainelLocal('MP','lote',this)">Cadastro em Lote</button><button class="tab" onclick="abrirPainelLocal('MP','inv',this)">Inventário WMS</button></div>
+<div id="mpPainelMapa" class="localPainel">
+<div class="box"><h3>Localizar no WMS</h3><div class="form"><div><label>Buscar código / descrição</label><input id="mpWBusca" placeholder="Código, descrição ou posição" oninput="renderMapaLocal('MP')"></div></div></div>
+<div class="box"><h3>Cadastrar posição MP</h3><div class="form"><div><label>Coluna *</label><input id="mpWCol" type="number" min="1" oninput="gerarCodigoLocal('MP')"></div><div><label>Andar *</label><input id="mpWAnd" type="number" min="1" oninput="gerarCodigoLocal('MP')"></div><div><label>Posição *</label><input id="mpWPos" type="number" min="1" oninput="gerarCodigoLocal('MP')"></div><div><label>Código gerado</label><input id="mpWCod" readonly placeholder="MP-1-1-1"></div><div><label>Capacidade</label><input id="mpWCap" type="number"></div></div><div class="actions"><button class="pri" onclick="salvarPosicaoLocal('MP')">Criar Posição</button></div></div>
+<div class="box"><div id="mpWMapa" class="map"></div></div></div>
+<div id="mpPainelLote" class="localPainel" style="display:none"></div>
+<div id="mpPainelInv" class="localPainel" style="display:none"></div>
+</div>
+<div id="wmsPA" style="display:none">
+<div class="box"><h3>WMS · Pátio</h3><p>Endereçamento independente do estoque <b>PA</b>. Padrão: <b>PA-COLUNA-ANDAR-POSIÇÃO</b>.</p></div>
+<div class="tabs localWmsNav" data-local="PA"><button class="tab on" onclick="abrirPainelLocal('PA','mapa',this)">Mapa / Posições</button><button class="tab" onclick="abrirPainelLocal('PA','lote',this)">Cadastro em Lote</button><button class="tab" onclick="abrirPainelLocal('PA','inv',this)">Inventário WMS</button></div>
+<div id="paPainelMapa" class="localPainel">
+<div class="box"><h3>Localizar no WMS</h3><div class="form"><div><label>Buscar código / descrição</label><input id="paWBusca" placeholder="Código, descrição ou posição" oninput="renderMapaLocal('PA')"></div></div></div>
+<div class="box"><h3>Cadastrar posição PA</h3><div class="form"><div><label>Coluna *</label><input id="paWCol" type="number" min="1" oninput="gerarCodigoLocal('PA')"></div><div><label>Andar *</label><input id="paWAnd" type="number" min="1" oninput="gerarCodigoLocal('PA')"></div><div><label>Posição *</label><input id="paWPos" type="number" min="1" oninput="gerarCodigoLocal('PA')"></div><div><label>Código gerado</label><input id="paWCod" readonly placeholder="PA-1-1-1"></div><div><label>Capacidade</label><input id="paWCap" type="number"></div></div><div class="actions"><button class="pri" onclick="salvarPosicaoLocal('PA')">Criar Posição</button></div></div>
+<div class="box"><div id="paWMapa" class="map"></div></div></div>
+<div id="paPainelLote" class="localPainel" style="display:none"></div>
+<div id="paPainelInv" class="localPainel" style="display:none"></div>
+</div></section>
+<section id="cargas" class="page"><h2>Programação de Cargas</h2>
+<div class="box"><h3>Carga</h3><input id="cargaId" type="hidden"><div class="form">
+<div><label>Romaneio</label><input id="cRom"></div><div><label>Data expedição</label><input id="cData" type="date"></div>
+<div><label>Destinatário</label><input id="cDest"></div><div><label>Cidade destino</label><input id="cCid"></div>
+<div><label>UF</label><input id="cUf"></div><div><label>Transportadora</label><input id="cTrans"></div>
+<div><label>Placa</label><input id="cPlaca"></div><div><label>Status</label><select id="cStatus"><option>PROGRAMADA</option><option>EM SEPARACAO</option><option>CARREGADA</option><option>EM TRANSITO</option><option>ENTREGUE</option><option>CANCELADA</option></select></div>
+</div><div class="actions"><button class="pri" onclick="novaCarga()">Nova</button><button class="pri" onclick="salvarCabecalhoCarga()">Salvar carga</button><button class="sec" onclick="addCargaItem()">+ Item</button><button class="pri" onclick="salvarItensCarga()">Salvar itens</button><button class="sec" onclick="alterarStatusCarga()">Atualizar status</button><button class="pri" onclick="separarCargaPP()">Separar PP</button><button class="sec" onclick="gerarEtiquetasWordCarga()">🏷 Gerar Etiquetas Word</button><button class="sec" onclick="abrirResumoConferenciaCarga()">✓ Conferência da Carga</button><button class="pri" onclick="baixarCargaPP()">Baixar Estoque PP</button><span id="cBaixaInfo" class="muted"></span></div>
+<div class="tw"><table><thead><tr><th>Pedido</th><th>Produto</th><th>Descrição</th><th>Qtd. carga</th><th>Saldo pedido</th><th>Separação WMS</th><th></th></tr></thead><tbody id="cargaItens"></tbody></table></div>
+<p class="muted">O item da carga é vinculado ao item exato do pedido. Somente cargas com status ENTREGUE entram em Quantidade Entregue.</p></div>
+<div class="box"><h3>Cargas cadastradas</h3><div class="tw"><table><thead><tr><th>Romaneio</th><th>Data</th><th>Destinatário</th><th>Destino</th><th>Status</th><th></th></tr></thead><tbody id="cargaLista"></tbody></table></div></div></section>
+<section id="almox" class="page"><h2>Almoxarifado</h2>
+<div class="box"><div class="actions" id="axNav">
+<button class="pri" onclick="axPage('dashboard')">Dashboard</button><button class="sec" onclick="axPage('itens')">Itens</button>
+<button class="sec" onclick="axPage('entrada')">Entrada</button><button class="sec" onclick="axPage('saida')">Consumo / Saída</button>
+<button class="sec" onclick="axPage('estoque')">Estoque</button><button class="sec" onclick="axPage('historico')">Histórico</button>
+<button class="sec" onclick="axPage('cadastros')">Cadastros</button></div></div><div id="axBody"></div></section>
+<section id="cad" class="page"><h2>Cadastros</h2><div class="tabs"><button class="tab on" data-pane="cadmp">Matéria-Prima</button><button class="tab" data-pane="vinc">MP → Produto</button><button class="tab" data-pane="prod">Produtos</button></div><div id="cadmp" class="pane on"><div class="box"><div class="form"><div><label>Código MP</label><input id="mpCod"></div><div><label>Descrição</label><input id="mpDesc"></div><div><label>Unidade</label><select id="mpUn"><option>KG</option><option>UN</option><option>M</option></select></div><div><label>Peso padrão</label><input id="mpPeso" type="number"></div><div><label>Largura</label><input id="mpLar" type="number"></div><div><label>Comprimento</label><input id="mpComp" type="number"></div><div><label>Espessura</label><input id="mpEsp" type="number"></div></div><div class="actions"><button class="pri" onclick="salvarMP()">Cadastrar MP</button></div><div class="tw"><table><thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th>Ação</th></tr></thead><tbody id="mpLista"></tbody></table></div></div></div><div id="vinc" class="pane"><div class="box"><input id="vincEditId" type="hidden"><div class="form"><div><label>Matéria-prima</label><select id="vMp"></select></div><div><label>Produto</label><select id="vProd"></select></div><div><label>Consumo/un.</label><input id="vCons" type="number"></div><div><label>Perda %</label><input id="vPerda" type="number"></div></div><div class="actions"><button id="btnVinc" class="pri" onclick="salvarVinc()">Vincular</button><button id="btnCancVinc" class="sec" style="display:none" onclick="cancelarEdicaoVinc()">Cancelar edição</button></div><div class="tw"><table><thead><tr><th>MP</th><th>Produto</th><th>Consumo</th><th>Perda</th><th>Ações</th></tr></thead><tbody id="vLista"></tbody></table></div></div></div><div id="prod" class="pane"><div class="box"><h3>Cadastro de Produto</h3><div class="form"><div><label>Código</label><input id="prodCod"></div><div><label>Descrição</label><input id="prodDesc"></div><div><label>Família</label><input id="prodFam" list="familiasLista" placeholder="Ex.: SILO BOLSA"><datalist id="familiasLista"></datalist></div><div><label>Peso unitário</label><input id="prodPeso" type="number" step="0.01"></div></div><div class="actions"><button class="pri" onclick="salvarProduto()">Cadastrar Produto</button></div><div class="form" style="margin-top:16px"><div><label>Pesquisar produtos</label><input id="prodBusca" placeholder="Código ou descrição..." oninput="prodPage=1;renderProdutos()"></div><div><label>Filtrar família</label><select id="prodFamFiltro" onchange="prodPage=1;renderProdutos()"><option value="">Todas</option></select></div></div><div id="prodResumo" class="muted" style="margin:10px 0"></div>
+<div class="actions"><button class="sec" onclick="selecionarProdutosPagina()">Selecionar página</button><button class="sec" onclick="limparSelecaoProdutos()">Limpar seleção</button><button class="pri" onclick="converterSelecionadosMP()">Converter selecionados para MP</button></div><div class="tw"><table><thead><tr><th>Sel.</th><th>Código</th><th>Produto</th><th>Família</th><th>Peso</th><th>Ação</th></tr></thead><tbody id="prodLista"></tbody></table></div><div class="actions"><button class="sec" onclick="prodPrev()">← Anterior</button><span id="prodPagInfo" class="muted"></span><button class="sec" onclick="prodNext()">Próxima →</button></div></div></div></section>
+<section id="mov" class="page"><h2>Movimentações de Estoque</h2><div class="box"><h3>Entrada / Saída integrada ao WMS</h3><div class="grid">
+<label>Operação<select id="movOper" onchange="ajustarMovOper()"><option value="ENTRADA">ENTRADA</option><option value="SAIDA">SAÍDA</option><option value="TRANSFERENCIA">TRANSFERÊNCIA</option></select></label>
+<label>Tipo de estoque<select id="movTipo" onchange="preencherMovItens();preencherMovEnderecos()"><option value="PRODUTO_PRONTO">PRODUTO PRONTO</option><option value="MATERIA_PRIMA">MATÉRIA-PRIMA</option></select></label>
+<label>Item<input id="movItemBusca" list="movProdutosLista" placeholder="Digite código ou descrição..." oninput="resolverMovItem()"><datalist id="movProdutosLista"></datalist><input id="movItem" type="hidden"></label><label id="movEndLabel">Posição WMS<select id="movEnd"></select></label><label id="movEndDestinoLabel" style="display:none">Posição destino<select id="movEndDestino"></select></label>
+<label>Lote<input id="movLote" placeholder="Lote"></label><label>Quantidade<input id="movQtd" type="number" min="0" step="0.01" placeholder="0"></label>
+<label>Documento<input id="movDoc" placeholder="NF, OP, requisição..."></label><label>Observação<input id="movObs" placeholder="Observação"></label></div>
+<div class="actions"><button class="pri" onclick="executarMovWms()">Confirmar Movimentação</button></div>
+<p class="muted">Na saída, o sistema valida o saldo disponível do item no lote e posição selecionados.</p></div>
+<div class="box"><h3>Conversão MP → Produto Pronto</h3><p class="muted">Consome matéria-prima de uma posição/lote do WMS e gera saldo de Produto Pronto em uma posição PP. A baixa da MP e a entrada do PP são feitas juntas.</p><div class="form"><div><label>Matéria-prima *</label><select id="convMp" onchange="preencherConversaoLotes()"></select></div><div><label>Posição MP *</label><select id="convMpEnd" onchange="preencherConversaoLotes()"></select></div><div><label>Lote MP *</label><select id="convMpLote"></select></div><div><label>Quantidade MP consumida *</label><input id="convMpQtd" type="number" min="0" step="0.01"></div><div><label>Produto Pronto *</label><select id="convProd"></select></div><div><label>Quantidade PP produzida *</label><input id="convPpQtd" type="number" min="0" step="0.01"></div><div><label>Lote PP *</label><input id="convPpLote" placeholder="Lote do produto pronto"></div><div><label>Posição PP destino *</label><select id="convPpEnd"></select></div><div><label>Documento / OP</label><input id="convDoc" placeholder="Ordem de produção"></div><div><label>Observação</label><input id="convObs" placeholder="Observação"></div></div><div class="actions"><button class="pri" onclick="executarConversaoMpPp()">Confirmar Conversão MP → PP</button></div></div><div class="box"><h3>Histórico de Movimentações</h3><div class="tw"><table><thead><tr><th>Data</th><th>Estoque</th><th>Movimento</th><th>Qtd.</th><th>Lote</th><th>Documento</th></tr></thead><tbody id="movLista"></tbody></table></div></div><div class="box"><h3>Histórico de Correções WMS</h3><p class="muted">Correções cadastrais não são entradas ou saídas de estoque.</p><div class="tw"><table><thead><tr><th>Data</th><th>Tipo</th><th>Item anterior</th><th>Item novo</th><th>Posição anterior</th><th>Posição nova</th><th>Lote anterior</th><th>Lote novo</th><th>Qtd.</th><th>Motivo</th></tr></thead><tbody id="corrLista"></tbody></table></div></div></section>
+
+
+<section id="usuarios" class="page"><div class="box"><h2>Usuários e Perfis</h2>
+ <h3>Novo usuário</h3>
+ <div class="form">
+  <div><label>Nome *</label><input id="novoUNome" placeholder="Ex.: Carlos Silva"></div>
+  <div><label>Usuário *</label><input id="novoUUsuario" placeholder="Ex.: carlos"></div>
+  <div><label>Senha inicial *</label><input id="novoUSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
+  <div><label>Perfil *</label><select id="novoUPerfil"><option>PRODUCAO</option><option>LOGISTICA</option><option>ALMOXARIFADO</option><option>QUALIDADE</option><option>CONSULTA</option><option>ADMINISTRADOR</option></select></div>
+ </div>
+ <div class="actions"><button class="pri" onclick="criarUsuarioSistema()">Adicionar usuário</button></div>
+ </div>
+ <div class="box"><h2>Usuários e Perfis</h2><p class="muted">Gestão dos usuários já criados no Supabase Authentication. Senhas e criação de contas permanecem no painel Authentication do Supabase.</p><div class="actions"><button class="pri" onclick="carregarUsuariosSistema()">Atualizar lista</button></div></div><div class="box"><div id="usuariosLista" class="tw"></div></div>
+<div id="permissoesBox" class="box" style="display:none">
+ <h3 id="permissoesTitulo">Permissões do usuário</h3>
+ <p class="muted">Para cada módulo escolha: Sem acesso, Somente consulta ou Pode alterar.</p>
+ <div id="permissoesLista" class="tw"></div>
+ <div class="actions"><button class="pri" onclick="salvarPermissoesUsuario()">Salvar permissões</button><button class="sec" onclick="$('permissoesBox').style.display='none'">Fechar</button></div>
+</div></section>
+</main></div><div id="toast" class="toast"></div>
+<script>
+const $=x=>document.getElementById(x),N=x=>Number(x)||0,F=x=>N(x).toLocaleString('pt-BR',{maximumFractionDigits:2}),E=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const setHTML=(id,v)=>{let e=$(id);if(e)e.innerHTML=v};
+const setText=(id,v)=>{let e=$(id);if(e)e.textContent=v};
+let sb=null;
+function navMain(p,b){
+ document.querySelectorAll('.nav,.page').forEach(x=>x.classList.remove('on'));
+ if(b)b.classList.add('on');
+ let pg=$(p); if(pg)pg.classList.add('on');
+ if(p==='est')stockView('PP',document.querySelector('#est .tab'));if(p==='almox' && sb) axPage('dashboard').catch(e=>{console.error(e);toast('Erro ao abrir Almoxarifado: '+e.message)});
+}
+let produtos=[],mps=[],locais=[],ends=[],pp=[],emp=[],vincs=[],pedidos=[],pits=[],cargas=[],inventarios=[],contagens=[],correcoes=[],reservasPP=[],cargaItensDB=[],separacoesCarga=[],inventarioAtivoId=0;
+let AX={i:[],m:[],c:[],f:[],set:[],cc:[]};
+function toast(x){$('toast').textContent=x;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2200)}
+document.querySelectorAll('.tab[data-pane]').forEach(b=>b.onclick=()=>{let p=b.closest('.page');p.querySelectorAll('.tab[data-pane],.pane').forEach(x=>x.classList.remove('on'));b.classList.add('on');$(b.dataset.pane).classList.add('on')});
+document.querySelectorAll('#wmsNav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#wmsNav button').forEach(x=>x.classList.remove('on'));document.querySelectorAll('#wms .wpanel').forEach(x=>x.style.display='none');b.classList.add('on');$(b.dataset.wms).style.display='block'}));
+async function Q(t){let {data,error}=await sb.from(t).select('*');if(error)throw error;return data||[]}function O(a,txt='nome'){return '<option value="">Selecione...</option>'+a.map(x=>`<option value="${x.id}">${E(x[txt])}</option>`).join('')}
+async function load(){
+ const nomes=['itens_carga','materias_primas','locais_estoque','enderecos_wms','estoque_produto_pronto','estoque_mp','estoque_pa','mp_produtos','pedidos','pedido_itens','cargas','inventarios_wms','inventario_wms_itens','correcoes_estoque_wms','pedido_reservas_pp','carga_itens','carga_separacoes_pp'];
+ const resultados=await Promise.all(nomes.map(async t=>{try{return {t,data:await Q(t),error:null}}catch(error){console.error('Falha em '+t,error);return {t,data:[],error}}}));
+ const map=Object.fromEntries(resultados.map(r=>[r.t,r.data]));
+ produtos=map.itens_carga;mps=map.materias_primas;locais=map.locais_estoque;ends=map.enderecos_wms;pp=map.estoque_produto_pronto;emp=map.estoque_mp;epa=map.estoque_pa||[];vincs=map.mp_produtos;pedidos=map.pedidos;pits=map.pedido_itens;cargas=map.cargas;inventarios=map.inventarios_wms;contagens=map.inventario_wms_itens;correcoes=map.correcoes_estoque_wms;reservasPP=map.pedido_reservas_pp;cargaItensDB=map.carga_itens;separacoesCarga=map.carga_separacoes_pp;
+ try{render()}catch(e){console.error('Erro de renderização',e);toast('Erro de tela: '+e.message)}
+ let falhas=resultados.filter(r=>r.error);
+ if(!falhas.length){$('conn').textContent='Banco conectado';$('conn').title='Todas as tabelas carregadas'}
+ else{$('conn').textContent='Conectado com aviso';$('conn').title='Falha: '+falhas.map(x=>x.t+': '+(x.error?.message||'erro')).join(' | ');console.warn('Tabelas com falha:',falhas.map(x=>x.t))}
+}
+function render(){
+ let pm=new Map(produtos.map(x=>[x.id,x])),mm=new Map(mps.map(x=>[x.id,x])),lm=new Map(locais.map(x=>[x.id,x.nome]));
+ setText('dPed',pedidos.length);setText('dProd',produtos.length);setText('dMp',mps.length);setText('dCarga',cargas.length);
+ setHTML('resumo',`PP físico: <b>${F(pp.reduce((a,x)=>a+N(x.quantidade),0))}</b> · MP física: <b>${F(emp.reduce((a,x)=>a+N(x.quantidade),0))}</b> · Endereços WMS: <b>${ends.length}</b>`);
+ renderProdutos();
+ setHTML('mpLista',mps.map(x=>`<tr><td>${E(x.codigo)}</td><td>${E(x.descricao)}</td><td>${E(x.unidade)}</td><td><button class="sec" onclick="editarMP(${x.id})">Editar</button> <button class="danger" onclick="deletarMP(${x.id})">Excluir</button></td></tr>`).join(''));
+ setHTML('locLista',locais.map(x=>`<span class="badge g">${E(x.codigo)} · ${E(x.nome)}</span> `).join(''));
+ if($('invEnd'))$('invEnd').innerHTML=O(ends,'codigo');
+ renderInventarioSelector();preencherInvItens();listarContagens();
+ if($('vMp'))$('vMp').innerHTML=O(mps,'descricao');
+ if($('vProd'))$('vProd').innerHTML='<option value="">Selecione...</option>'+produtos.map(x=>`<option value="${x.id}">${E(x.codigo+' · '+x.descricao)}</option>`).join('');
+ renderEstoquePP();
+ let emap=new Map(ends.map(x=>[x.id,x.codigo]));
+ setHTML('mpEstLista',emp.map(x=>{let m=mm.get(x.materia_prima_id),d=N(x.quantidade)-N(x.reservado)-N(x.bloqueado);return `<tr><td>${E(m?.codigo)}</td><td>${E(m?.descricao)}</td><td>${E(lm.get(x.local_id))}</td><td><b>${E(emap.get(x.endereco_wms_id)||'Sem posição')}</b></td><td>${E(x.lote)}</td><td>${F(x.quantidade)}</td><td>${F(x.reservado)}</td><td><b>${F(d)}</b></td><td><button class="sec" onclick="corrigirRegistroMP(${x.id})">Corrigir</button></td></tr>`}).join(''));
+ renderCorrecoes();
+ setHTML('vLista',vincs.map(x=>`<tr><td>${E(mm.get(x.materia_prima_id)?.descricao)}</td><td>${E(pm.get(x.produto_id)?.codigo)} · ${E(pm.get(x.produto_id)?.descricao)}</td><td>${F(x.consumo_por_unidade)}</td><td>${F(x.perda_percentual)}%</td><td><button class="sec" onclick="editarVinc(${x.id})">Editar</button> <button class="del" onclick="excluirVinc(${x.id})">Excluir</button></td></tr>`).join(''));
+ setHTML('cargaLista',cargas.map(x=>`<tr><td>${E(x.romaneio)}</td><td>${E(x.data_expedicao)}</td><td>${E(x.destinatario)}</td><td>${E(x.cidade_destino)}</td><td>${E(x.status)}</td><td><button class="sec" onclick="abrirCarga(${x.id})">Abrir</button></td></tr>`).join(''));
+ setHTML('pedLista',pedidos.map(x=>`<tr><td>${E(x.numero_pedido)}</td><td>${E(x.cliente)}</td><td>${E(x.data_entrega)}</td><td>${E(x.status)}</td><td><button class="sec" onclick="abrirPedido(${x.id})">Abrir</button></td></tr>`).join(''));
+ if($('wMapa'))renderWms();
+ if($('movItem'))preencherMovItens();
+ if($('movEnd'))preencherMovEnderecos();
+ if($('convMp'))preencherConversaoMpPp();
+ if($('movLista'))loadMov();
+}
+function dispP(id){return pp.filter(x=>x.produto_id===id).reduce((a,x)=>a+N(x.quantidade)-N(x.reservado)-N(x.bloqueado),0)}function anaMP(id,f){if(f<=0)return '<span class="badge g">Atendido por PP</span>';let a=vincs.filter(x=>x.produto_id===id);if(!a.length)return '<span class="badge r">Sem MP vinculada</span>';return a.map(v=>{let m=mps.find(x=>x.id===v.materia_prima_id),d=emp.filter(x=>x.materia_prima_id===v.materia_prima_id).reduce((a,x)=>a+N(x.quantidade)-N(x.reservado)-N(x.bloqueado),0),nec=f*N(v.consumo_por_unidade)*(1+N(v.perda_percentual)/100);return `<span class="badge ${d>=nec?'g':'r'}">${E(m?.codigo)} ${F(d)}/${F(nec)}</span>`}).join(' ')}
+function prodOpts(){return '<option value="">Selecione...</option>'+produtos.map(x=>`<option value="${x.id}">${E(x.codigo)}</option>`).join('')}function posReservadas(itemId){
+  if(!itemId)return '';
+  let em=new Map(ends.map(x=>[x.id,x.codigo])),sm=new Map(pp.map(x=>[x.id,x]));
+  return reservasPP.filter(x=>x.pedido_item_id===itemId).map(x=>{let e=sm.get(x.estoque_pp_id);return `${em.get(e?.endereco_wms_id)||'Sem posição'} / Lote ${e?.lote||'-'}: ${F(x.quantidade)}`}).join('<br>');
+}
+function addPedItem(d={}){
+  let r=document.createElement('tr');r.dataset.itemId=d.id||'';
+  r.innerHTML=`<td><select class="pi">${prodOpts()}</select></td><td class="desc"></td><td><input class="q" type="number" value="${d.quantidade||''}"></td><td class="prog"></td><td class="entr"></td><td class="saldo"></td><td class="disp"></td><td class="res"></td><td class="falta"></td><td class="posres"></td><td class="ana"></td><td><button class="del" onclick="this.closest('tr').remove()">×</button></td>`;
+  $('pedItens').appendChild(r);if(d.produto_id)r.querySelector('.pi').value=d.produto_id;
+  r.querySelector('.pi').onchange=r.querySelector('.q').oninput=()=>anaRow(r,d);
+  anaRow(r,d)
+}
+function anaRow(r,d={}){
+  let id=N(r.querySelector('.pi').value),p=produtos.find(x=>x.id===id),q=N(r.querySelector('.q').value),dis=dispP(id),res=N(d.quantidade_reservada),f=d.id?N(d.quantidade_produzir):Math.max(0,q-dis);
+  r.querySelector('.desc').textContent=p?.descricao||'';
+  r.querySelector('.prog').innerHTML=`<b>${F(d.quantidade_programada)}</b>`;
+  r.querySelector('.entr').innerHTML=`<b>${F(d.quantidade_entregue)}</b>`;
+  r.querySelector('.saldo').innerHTML=`<b>${F(d.id?(d.saldo_entregar??q):q)}</b>`;
+  r.querySelector('.disp').textContent=F(dis);
+  r.querySelector('.res').innerHTML=res?`<b>${F(res)}</b>`:'0';
+  r.querySelector('.falta').innerHTML=f?`<b>${F(f)}</b>`:'0';
+  r.querySelector('.posres').innerHTML=posReservadas(d.id);
+  r.querySelector('.ana').innerHTML=anaMP(id,f)
+}
+
+let pedidosPdfPreview=[];
+function pdfNum(v){let x=String(v||'').replace(/\s/g,'').replace(/\./g,'').replace(',','.');return Number(x)||0}
+function pdfDataIso(v){let m=String(v||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?`${m[3]}-${m[2]}-${m[1]}`:null}
+function pdfNormaliza(s){return String(s||'').replace(/\s+/g,' ').trim()}
+async function extrairPdfEstruturado(file){
+ const pdfjs=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs');
+ pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+ const buf=await file.arrayBuffer(), doc=await pdfjs.getDocument({data:buf}).promise, pages=[];
+ for(let n=1;n<=doc.numPages;n++){
+  let pg=await doc.getPage(n),tc=await pg.getTextContent();
+  let items=tc.items.filter(i=>pdfNormaliza(i.str)).map(i=>({t:pdfNormaliza(i.str),x:i.transform[4],y:i.transform[5]}));
+  pages.push(items)
+ }
+ return pages
+}
+function agruparLinhasPdf(items){
+ let rows=[];
+ for(let it of [...items].sort((a,b)=>b.y-a.y||a.x-b.x)){
+  let r=rows.find(z=>Math.abs(z.y-it.y)<2.5);if(!r){r={y:it.y,a:[]};rows.push(r)}r.a.push(it)
+ }
+ rows.forEach(r=>r.a.sort((a,b)=>a.x-b.x));return rows.sort((a,b)=>b.y-a.y)
+}
+function parsePedidoPdf(pages,fileName){
+ let pageRows=pages.map(items=>agruparLinhasPdf(items));
+ let pageLines=pageRows.map(rows=>rows.map(r=>pdfNormaliza(r.a.map(z=>z.t).join(' '))).filter(Boolean));
+ let lines=pageLines.flat(), text=pdfNormaliza(lines.join(' '));
+ let hm=text.match(/DADOS DO PEDIDO\s*N[º°]?\s*(\d+)\s*-\s*(\d{2}\/\d{2}\/\d{4})/i);
+ if(!hm){let fm=String(fileName||'').match(/Pedido\s*(\d+)/i);hm=fm?[null,fm[1],null]:null}
+
+ let cliente='';
+ for(let rows of pageRows){
+   let r=rows.find(r=>r.a.some(z=>/^Cliente\s*:/i.test(z.t)));
+   if(!r)continue;
+   let linha=pdfNormaliza(r.a.map(z=>z.t).join(' '));
+   let m=linha.match(/Cliente\s*:\s*\d+\s*-\s*(.*?)(?=\s+CNPJ\/CPF\s*:|$)/i);
+   if(m?.[1]){cliente=m[1].trim();break}
+   let idx=r.a.findIndex(z=>/^Cliente\s*:/i.test(z.t));
+   let seg=pdfNormaliza(r.a.slice(idx).map(z=>z.t).join(' '));
+   m=seg.match(/Cliente\s*:\s*\d+\s*-\s*(.*?)(?=\s+CNPJ\/CPF\s*:|$)/i);
+   if(m?.[1]){cliente=m[1].trim();break}
+ }
+ if(!cliente){let m=text.match(/Cliente\s*:\s*\d+\s*-\s*(.*?)(?=\s+CNPJ\/CPF\s*:)/i);cliente=m?.[1]?.trim()||''}
+
+ let cidade='',uf='';
+ let ce=lines.find(x=>/Cidade\s+Entrega\s*:/i.test(x))||'';
+ let cm=ce.match(/Cidade\s+Entrega\s*:\s*(.*?)\s*\/\s*([A-Z]{2})(?:\s|$)/i);
+ if(!cm){let cu=lines.find(x=>/Cidade\/UF\s*:/i.test(x))||'';cm=cu.match(/Cidade\/UF\s*:\s*(.*?)\s*\/\s*([A-Z]{2})(?:\s|$)/i)}
+ if(cm){cidade=cm[1].trim();uf=cm[2]}
+
+ // Itens: percorre TODAS as páginas. Páginas de continuação não precisam repetir o cabeçalho.
+ let itens=[];
+ let ref={codigoMaxX:90};
+ // Aprende a geometria da tabela em qualquer página que tenha cabeçalho.
+ for(let items of pages){
+   let cab=items.find(z=>/^C[oó]d\.?$/i.test(z.t))||items.find(z=>/C[oó]d\.\s*Item/i.test(z.t));
+   if(cab){ref.codigoMaxX=Math.max(90,cab.x+55);break}
+ }
+ for(let pi=0;pi<pages.length;pi++){
+   let items=pages[pi];
+   let cab=items.find(z=>/^C[oó]d\.?$/i.test(z.t))||items.find(z=>/C[oó]d\.\s*Item/i.test(z.t));
+   let tot=items.find(z=>/^TOTAIS$/i.test(z.t));
+   // Na primeira página, começa abaixo do cabeçalho. Nas continuações, aceita toda a área útil acima de TOTAIS.
+   let candidatos=items.filter(z=>/^\d{3,8}$/.test(z.t) && z.x<ref.codigoMaxX && (!cab || z.y<cab.y-2) && (!tot || z.y>tot.y+2));
+   for(let c of candidatos){
+     let same=items.filter(z=>Math.abs(z.y-c.y)<3.2).sort((a,b)=>a.x-b.x);
+     let un=same.find(z=>/^UN$/i.test(z.t));
+     if(!un)continue;
+     let qtdItem=same.filter(z=>z.x>un.x && z.x<un.x+90 && /^[\d.,]+$/.test(z.t)).sort((a,b)=>a.x-b.x)[0];
+     if(!qtdItem)continue;
+     let qtd=pdfNum(qtdItem.t);if(!(qtd>0))continue;
+     let descParts=same.filter(z=>z.x>c.x+10 && z.x<un.x-2).map(z=>z.t);
+     let abaixo=items.filter(z=>z.y<c.y-2 && z.y>c.y-32 && z.x>c.x+10 && z.x<un.x-2).sort((a,b)=>b.y-a.y||a.x-b.x);
+     descParts.push(...abaixo.map(z=>z.t));
+     let descricao=pdfNormaliza(descParts.join(' '));
+     // Se o mesmo código vier em mais de uma linha/página, soma a quantidade em vez de perder a continuação.
+     let ex=itens.find(x=>x.codigo===c.t);
+     if(ex){ex.quantidade+=qtd;if(descricao && !ex.descricao_pdf.includes(descricao))ex.descricao_pdf=pdfNormaliza(ex.descricao_pdf+' '+descricao)}
+     else itens.push({codigo:c.t,descricao_pdf:descricao,quantidade:qtd});
+   }
+ }
+ return {arquivo:fileName,numero:hm?.[1]||'',data:pdfDataIso(hm?.[2]),cliente,cidade,uf,itens}
+}
+function validarPedidoPdf(p){
+ let erros=[];p.existente=pedidos.find(x=>String(x.numero_pedido)===String(p.numero));
+ if(!p.numero)erros.push('Número do pedido não identificado');if(!p.cliente)erros.push('Cliente não identificado');if(!p.itens.length)erros.push('Nenhum item identificado');if(p.existente)erros.push(`Pedido ${p.numero} já existe`);
+ p.itens.forEach(i=>{i.produto=produtos.find(x=>String(x.codigo).trim()===String(i.codigo).trim());if(!i.produto)erros.push(`Código ${i.codigo} não cadastrado`);if(!(i.quantidade>0))erros.push(`Quantidade inválida no código ${i.codigo}`)});p.erros=[...new Set(erros)];p.valido=!p.erros.length;return p
+}
+async function lerPedidosPdf(){
+ let fs=[...($('pedPdfFiles')?.files||[])];if(!fs.length)return toast('Selecione pelo menos um PDF');
+ $('pedPdfStatus').textContent='Lendo arquivos...';pedidosPdfPreview=[];
+ try{for(let f of fs){let pages=await extrairPdfEstruturado(f);pedidosPdfPreview.push(validarPedidoPdf(parsePedidoPdf(pages,f.name)))}renderPreviewPedidosPdf()}catch(e){console.error(e);$('pedPdfStatus').textContent='Falha ao ler PDF: '+e.message;toast('Erro ao ler PDF')}
+}
+function renderPreviewPedidosPdf(){
+ let ok=pedidosPdfPreview.filter(x=>x.valido).length,total=pedidosPdfPreview.length;$('pedPdfStatus').innerHTML=`Arquivos analisados: <b>${total}</b> · Válidos para importação: <b>${ok}</b>`;
+ $('pedPdfPreview').innerHTML=pedidosPdfPreview.map((p,ix)=>`<div class="box" style="border-left:5px solid ${p.valido?'#16a34a':'#dc2626'}"><h3>${E(p.arquivo)} · Pedido ${E(p.numero||'?')} ${p.valido?'<span class="badge g">VÁLIDO</span>':'<span class="badge r">REVISAR</span>'}</h3><p><b>Cliente:</b> ${E(p.cliente)} · <b>Destino:</b> ${E(p.cidade)}/${E(p.uf)} · <b>Data:</b> ${E(p.data||'')}</p>${p.erros.length?`<p style="color:#991b1b"><b>Pendências:</b> ${p.erros.map(E).join(' · ')}</p>`:''}<div class="tw"><table><thead><tr><th>Código</th><th>Descrição PDF</th><th>Produto cadastrado</th><th>Qtd.</th><th>Status</th></tr></thead><tbody>${p.itens.map(i=>`<tr><td><b>${E(i.codigo)}</b></td><td>${E(i.descricao_pdf)}</td><td>${E(i.produto?i.produto.codigo+' · '+i.produto.descricao:'Não cadastrado')}</td><td>${F(i.quantidade)}</td><td>${i.produto?'<span class="badge g">OK</span>':'<span class="badge r">NÃO CADASTRADO</span>'}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
+ $('pedPdfImportar').style.display=ok?'inline-block':'none';$('pedPdfLimpar').style.display=total?'inline-block':'none'
+}
+function limparImportacaoPdf(){pedidosPdfPreview=[];$('pedPdfFiles').value='';$('pedPdfPreview').innerHTML='';$('pedPdfStatus').textContent='';$('pedPdfImportar').style.display='none';$('pedPdfLimpar').style.display='none'}
+async function importarPedidosPdf(){
+ let validos=pedidosPdfPreview.filter(x=>x.valido);if(!validos.length)return toast('Nenhum pedido válido');if(!confirm(`Importar ${validos.length} pedido(s) para o sistema?`))return;
+ let feitos=0;
+ try{for(let p of validos){
+   let h={numero_pedido:p.numero,cliente:p.cliente,data_pedido:p.data,data_entrega:p.data,cidade:p.cidade,uf:p.uf,prioridade:'NORMAL',status:'ABERTO',observacao:`Importado do PDF ${p.arquivo}`};
+   let z=await sb.from('pedidos').insert(h).select().single();if(z.error)throw new Error(`Pedido ${p.numero}: ${z.error.message}`);
+   let rows=p.itens.map(i=>({pedido_id:z.data.id,produto_id:i.produto.id,quantidade:i.quantidade,quantidade_reservada:0,quantidade_produzir:i.quantidade,quantidade_programada:0,quantidade_entregue:0,saldo_entregar:i.quantidade,status:'PENDENTE',observacao:'Importado de PDF'}));
+   let zi=await sb.from('pedido_itens').insert(rows);if(zi.error){await sb.from('pedidos').delete().eq('id',z.data.id);throw new Error(`Itens do pedido ${p.numero}: ${zi.error.message}`)}feitos++
+  }
+  toast(`${feitos} pedido(s) importado(s)`);limparImportacaoPdf();await load()
+ }catch(e){console.error(e);toast(e.message);await load()}
+}
+
+function novoPedido(){['pedId','pedNum','pedCli','pedEnt','pedCid','pedUf'].forEach(x=>$(x).value='');$('pedData').value=new Date().toISOString().slice(0,10);$('pedStatus').value='ABERTO';$('pedItens').innerHTML='';addPedItem()}
+async function liberarReservasItensPedido(id){
+  let its=pits.filter(x=>x.pedido_id===id);
+  for(let it of its){if(N(it.quantidade_reservada)>0||reservasPP.some(r=>r.pedido_item_id===it.id)){let z=await sb.rpc('liberar_reserva_item_pedido_pp',{p_pedido_item_id:it.id});if(z.error)throw z.error}}
+}
+async function salvarPedido(){
+  let h={numero_pedido:$('pedNum').value.trim(),cliente:$('pedCli').value.trim(),data_pedido:$('pedData').value||null,data_entrega:$('pedEnt').value||null,cidade:$('pedCid').value,uf:$('pedUf').value,prioridade:$('pedPri').value};
+  if(!h.numero_pedido||!h.cliente)return toast('Informe pedido e cliente');
+  let id=N($('pedId').value);
+  try{
+    if(id){
+      await liberarReservasItensPedido(id);
+      let z=await sb.from('pedidos').update(h).eq('id',id);if(z.error)throw z.error;
+      z=await sb.from('pedido_itens').delete().eq('pedido_id',id);if(z.error)throw z.error
+    }else{
+      h.status='ABERTO';let z=await sb.from('pedidos').insert(h).select().single();if(z.error)throw z.error;id=z.data.id
+    }
+    $('pedId').value=id;
+    let rows=[...$('pedItens').children].map(r=>({pedido_id:id,produto_id:N(r.querySelector('.pi').value),quantidade:N(r.querySelector('.q').value),quantidade_reservada:0,quantidade_produzir:N(r.querySelector('.q').value),status:'PENDENTE'})).filter(x=>x.produto_id&&x.quantidade);
+    if(rows.length){let z=await sb.from('pedido_itens').insert(rows);if(z.error)throw z.error}
+    toast('Pedido salvo. Use Reservar Estoque PP.');
+    await load();abrirPedido(id)
+  }catch(e){toast(e.message)}
+}
+async function reservarPedidoAtual(){
+  let id=N($('pedId').value);if(!id)return toast('Salve o pedido primeiro');
+  let {error}=await sb.rpc('reservar_pedido_pp',{p_pedido_id:id});if(error)return toast(error.message);
+  toast('Reserva de estoque realizada');await load();abrirPedido(id)
+}
+async function liberarPedidoAtual(){
+  let id=N($('pedId').value);if(!id)return toast('Abra um pedido');
+  if(!confirm('Liberar todas as reservas de Produto Pronto deste pedido?'))return;
+  try{await liberarReservasItensPedido(id);await sb.from('pedidos').update({status:'AGUARDANDO_PRODUCAO'}).eq('id',id);toast('Reservas liberadas');await load();abrirPedido(id)}catch(e){toast(e.message)}
+}
+function abrirPedido(id){
+  let p=pedidos.find(x=>x.id===id);if(!p)return;
+  $('pedId').value=p.id;$('pedNum').value=p.numero_pedido;$('pedCli').value=p.cliente;$('pedData').value=p.data_pedido||'';$('pedEnt').value=p.data_entrega||'';$('pedCid').value=p.cidade||'';$('pedUf').value=p.uf||'';$('pedPri').value=p.prioridade;
+  let st=[...$('pedStatus').options].some(o=>o.value===p.status);if(!st){let o=document.createElement('option');o.value=o.textContent=p.status;$('pedStatus').appendChild(o)}$('pedStatus').value=p.status;
+  $('pedItens').innerHTML='';pits.filter(x=>x.pedido_id===id).forEach(addPedItem)
+}
+
+function resumoSeparacaoCarga(cargaItemId){
+ if(!cargaItemId)return '<span class="muted">Não separado</span>';
+ let a=separacoesCarga.filter(x=>x.carga_item_id===cargaItemId);
+ if(!a.length)return '<span class="muted">Não separado</span>';
+ return a.map(x=>{let e=pp.find(y=>y.id===x.estoque_pp_id),w=ends.find(y=>y.id===e?.endereco_wms_id);return `<b>${E(w?.codigo||'SEM POS.')}</b> · lote ${E(e?.lote||'-')} · ${F(x.quantidade)}${x.baixado?' ✓':''}`}).join('<br>')
+}
+function pedidoItemLabel(pi){
+ let p=pedidos.find(x=>x.id===pi.pedido_id),pr=produtos.find(x=>x.id===pi.produto_id);
+ return `${p?.numero_pedido||'?'} · ${p?.cliente||''} · ${pr?.codigo||''} · saldo ${F(pi.saldo_entregar??pi.quantidade)}`
+}
+function cargaPedidoOpts(produtoId=0,selecionado=0){
+ let a=pits.filter(x=>(!produtoId||x.produto_id===produtoId)&&N(x.saldo_entregar??x.quantidade)>0);
+ if(selecionado&&!a.some(x=>x.id===selecionado)){let x=pits.find(y=>y.id===selecionado);if(x)a.push(x)}
+ return '<option value="">Selecione o pedido...</option>'+a.map(x=>`<option value="${x.id}" ${x.id===selecionado?'selected':''}>${E(pedidoItemLabel(x))}</option>`).join('')
+}
+function addCargaItem(d={}){
+ let r=document.createElement('tr');r.dataset.id=d.id||'';
+ let pi=pits.find(x=>x.id===d.pedido_item_id),prodId=pi?.produto_id||d.item_id||0,pr=produtos.find(x=>x.id===prodId);
+ r.innerHTML=`<td><select class="cpi">${cargaPedidoOpts(prodId,d.pedido_item_id)}</select></td><td class="cprod">${E(pr?.codigo||'')}</td><td class="cdesc">${E(pr?.descricao||'')}</td><td><input class="cq" type="number" min="0" step="0.01" value="${d.quantidade||''}"></td><td class="csaldo">${F(pi?.saldo_entregar??pi?.quantidade)}</td><td class="csep">${resumoSeparacaoCarga(d.id)}</td><td><button class="del" onclick="this.closest('tr').remove()">×</button></td>`;
+ $('cargaItens').appendChild(r);
+ r.querySelector('.cpi').onchange=()=>{let x=pits.find(y=>y.id===N(r.querySelector('.cpi').value)),p=produtos.find(y=>y.id===x?.produto_id);r.querySelector('.cprod').textContent=p?.codigo||'';r.querySelector('.cdesc').textContent=p?.descricao||'';r.querySelector('.csaldo').textContent=F(x?.saldo_entregar??x?.quantidade)}
+}
+function novaCarga(){
+ ['cargaId','cRom','cDest','cCid','cUf','cTrans','cPlaca'].forEach(x=>$(x).value='');
+ $('cData').value=new Date().toISOString().slice(0,10);$('cStatus').value='PROGRAMADA';$('cargaItens').innerHTML='';addCargaItem()
+}
+async function salvarCabecalhoCarga(){
+ let id=N($('cargaId').value),o={romaneio:$('cRom').value.trim(),data_expedicao:$('cData').value||null,destinatario:$('cDest').value.trim(),cidade_destino:$('cCid').value.trim(),uf:$('cUf').value.trim(),transportadora:$('cTrans').value.trim(),placa:$('cPlaca').value.trim()};
+ if(!o.romaneio)return toast('Informe o romaneio');
+ let z=id?await sb.from('cargas').update(o).eq('id',id).select().single():await sb.from('cargas').insert({...o,status:'PROGRAMADA'}).select().single();
+ if(z.error)return toast(z.error.message);$('cargaId').value=z.data.id;toast('Carga salva');await load();abrirCarga(z.data.id)
+}
+async function salvarItensCarga(){
+ let cid=N($('cargaId').value);if(!cid)return toast('Salve a carga primeiro');
+ let rows=[...$('cargaItens').children].map((r,i)=>{let pi=pits.find(x=>x.id===N(r.querySelector('.cpi').value));return {carga_id:cid,numero_pallet:i+1,item_id:pi?.produto_id||null,pedido_item_id:pi?.id||null,quantidade:N(r.querySelector('.cq').value),status:'EMBALAR'}}).filter(x=>x.item_id&&x.pedido_item_id&&x.quantidade>0);
+ if(!rows.length)return toast('Informe pelo menos um item com pedido e quantidade');
+ for(let x of rows){let pi=pits.find(y=>y.id===x.pedido_item_id),outras=cargaItensDB.filter(y=>y.pedido_item_id===x.pedido_item_id&&y.carga_id!==cid).reduce((a,y)=>{let c=cargas.find(z=>z.id===y.carga_id);return a+(String(c?.status||'').toUpperCase()==='CANCELADA'?0:N(y.quantidade))},0),max=N(pi?.quantidade)-outras;if(x.quantidade>max)return toast(`Quantidade acima do pedido ${pedidos.find(p=>p.id===pi?.pedido_id)?.numero_pedido}. Máximo programável: ${F(max)}`)}
+ let z=await sb.from('carga_itens').delete().eq('carga_id',cid);if(z.error)return toast(z.error.message);
+ z=await sb.from('carga_itens').insert(rows);if(z.error)return toast(z.error.message);
+ let rr=await sb.rpc('recalcular_entregas_carga',{p_carga_id:cid});if(rr.error)return toast(rr.error.message);
+ toast('Itens da carga vinculados aos pedidos');await load();abrirCarga(cid)
+}
+function abrirCarga(id){
+ let c=cargas.find(x=>x.id===id);if(!c)return;
+ $('cargaId').value=c.id;$('cRom').value=c.romaneio||'';$('cData').value=c.data_expedicao||'';$('cDest').value=c.destinatario||'';$('cCid').value=c.cidade_destino||'';$('cUf').value=c.uf||'';$('cTrans').value=c.transportadora||'';$('cPlaca').value=c.placa||'';
+ let st=String(c.status||'PROGRAMADA').toUpperCase();if(![...$('cStatus').options].some(o=>o.value===st)){let o=document.createElement('option');o.value=o.textContent=st;$('cStatus').appendChild(o)}$('cStatus').value=st;
+ $('cargaItens').innerHTML='';let a=cargaItensDB.filter(x=>x.carga_id===id);if(a.length)a.forEach(addCargaItem);else addCargaItem();$('cBaixaInfo').innerHTML=c.estoque_baixado?`<b>ESTOQUE BAIXADO</b> ${E(c.estoque_baixado_em||'')}`:(separacoesCarga.some(x=>a.some(i=>i.id===x.carga_item_id))?'<b>PP SEPARADO</b>':'PP ainda não separado')
+}
+
+function cargaSelecionada(){
+ const id=N($('cargaId').value);
+ return id?cargas.find(x=>x.id===id):null;
+}
+function itensCargaSelecionada(){
+ const id=N($('cargaId').value);
+ return id?cargaItensDB.filter(x=>x.carga_id===id).sort((a,b)=>N(a.numero_pallet)-N(b.numero_pallet)):[];
+}
+function dadosPalletCarga(ci){
+ const pr=produtos.find(x=>x.id===ci.item_id);
+ const pi=pits.find(x=>x.id===ci.pedido_item_id);
+ const ped=pedidos.find(x=>x.id===pi?.pedido_id);
+ return {produto:pr,pedido:ped};
+}
+function numeroPalletEtiqueta(ci,indice){
+ const n=N(ci?.numero_pallet);
+ return n>0?n:(indice+1);
+}
+function qrPayloadCarga(c,ci,indice){
+ const np=numeroPalletEtiqueta(ci,indice);
+ return `EXTRAPLAST|CARGA:${c.id}|ROMANEIO:${String(c.romaneio||'')}|PALLET:${np}|CARGA_ITEM:${ci.id}`;
+}
+
+function dataUrlParaUint8Array(dataUrl){
+ const b64=dataUrl.split(',')[1], bin=atob(b64), arr=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+ return arr;
+}
+async function qrPngBytes(texto){
+ const box=document.createElement('div');
+ box.style.cssText='position:fixed;left:-9999px;top:-9999px;width:320px;height:320px;background:#fff';
+ document.body.appendChild(box);
+ new QRCode(box,{text:texto,width:300,height:300,correctLevel:QRCode.CorrectLevel.M});
+ await new Promise(r=>setTimeout(r,80));
+ const canvas=box.querySelector('canvas'), img=box.querySelector('img');
+ let url='';
+ if(canvas) url=canvas.toDataURL('image/png');
+ else if(img) url=img.src;
+ box.remove();
+ if(!url) throw new Error('Não foi possível gerar o QR Code.');
+ return dataUrlParaUint8Array(url);
+}
+async function gerarEtiquetasWordCarga(){
+ try{
+  const c=cargaSelecionada();
+  if(!c)return toast('Abra uma carga primeiro');
+  if(String(c.status||'').toUpperCase()==='CANCELADA')return toast('Carga cancelada não pode gerar etiquetas');
+  const itens=itensCargaSelecionada();
+  if(!itens.length)return toast('Salve os itens da carga antes de gerar as etiquetas');
+  if(!window.docx)return toast('Biblioteca Word não carregou. Atualize a página e tente novamente.');
+
+  toast('Gerando etiquetas Word...');
+  const {Document,Packer,Paragraph,TextRun,Table,TableRow,TableCell,WidthType,
+         AlignmentType,VerticalAlign,ImageRun,PageBreak,BorderStyle}=window.docx;
+  const mm=v=>Math.round(v*56.6929133858);
+  const borda={style:BorderStyle.SINGLE,size:8,color:'000000'};
+  const semBorda={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
+  const sections=[];
+
+  for(let i=0;i<itens.length;i++){
+   const ci=itens[i], np=numeroPalletEtiqueta(ci,i), d=dadosPalletCarga(ci),
+         p=d.produto||{}, ped=d.pedido||{}, qr=qrPayloadCarga(c,ci,i),
+         qrBytes=await qrPngBytes(qr);
+   const destino=(c.cidade_destino||'')+(c.uf?'/'+c.uf:'');
+   const children=[];
+
+   children.push(new Table({
+    width:{size:100,type:WidthType.PERCENTAGE},
+    borders:{top:semBorda,bottom:borda,left:semBorda,right:semBorda,insideHorizontal:semBorda,insideVertical:semBorda},
+    rows:[new TableRow({children:[
+     new TableCell({width:{size:55,type:WidthType.PERCENTAGE},verticalAlign:VerticalAlign.CENTER,children:[
+      new Paragraph({spacing:{after:0},children:[new TextRun({text:'EXTRAPLAST',bold:true,size:28})]}),
+      new Paragraph({spacing:{after:0},children:[new TextRun({text:'ETIQUETA DE PALLET',size:14})]})
+     ]}),
+     new TableCell({width:{size:45,type:WidthType.PERCENTAGE},verticalAlign:VerticalAlign.CENTER,children:[
+      new Paragraph({alignment:AlignmentType.RIGHT,spacing:{after:0},children:[new TextRun({text:`PALLET ${np}`,bold:true,size:32})]})
+     ]})
+    ]})]
+   }));
+   const info=(rotulo,valor)=>new Paragraph({spacing:{before:35,after:10},children:[
+      new TextRun({text:rotulo,bold:true,size:15}),new TextRun({text:String(valor||''),size:15})
+   ]});
+   children.push(info('Romaneio: ',c.romaneio||''));
+   children.push(info('Destinatário: ',c.destinatario||''));
+   children.push(info('Destino: ',destino));
+   children.push(info('Pedido: ',ped.numero_pedido||''));
+
+   children.push(new Table({
+    width:{size:100,type:WidthType.PERCENTAGE},
+    margins:{top:mm(1.3),bottom:mm(1.3),left:mm(1.8),right:mm(1.8)},
+    borders:{top:borda,bottom:borda,left:borda,right:borda,insideHorizontal:semBorda,insideVertical:semBorda},
+    rows:[new TableRow({children:[
+      new TableCell({width:{size:22,type:WidthType.PERCENTAGE},verticalAlign:VerticalAlign.CENTER,children:[
+       new Paragraph({spacing:{after:0},children:[new TextRun({text:String(p.codigo||''),bold:true,size:25})]})
+      ]}),
+      new TableCell({width:{size:78,type:WidthType.PERCENTAGE},verticalAlign:VerticalAlign.CENTER,children:[
+       new Paragraph({spacing:{after:0},children:[new TextRun({text:String(p.descricao||''),bold:true,size:17})]})
+      ]})
+    ]})]
+   }));
+   children.push(new Paragraph({spacing:{before:80,after:35},children:[
+      new TextRun({text:`QUANTIDADE: ${F(ci.quantidade)}`,bold:true,size:28})
+   ]}));
+   children.push(new Table({
+    width:{size:100,type:WidthType.PERCENTAGE},
+    borders:{top:semBorda,bottom:semBorda,left:semBorda,right:semBorda,insideHorizontal:semBorda,insideVertical:semBorda},
+    rows:[new TableRow({children:[
+      new TableCell({width:{size:43,type:WidthType.PERCENTAGE},verticalAlign:VerticalAlign.CENTER,children:[
+       new Paragraph({alignment:AlignmentType.LEFT,spacing:{after:0},children:[
+        new ImageRun({data:qrBytes,transformation:{width:132,height:132}})
+       ]})
+      ]}),
+      new TableCell({width:{size:57,type:WidthType.PERCENTAGE},verticalAlign:VerticalAlign.BOTTOM,children:[
+       new Paragraph({spacing:{after:0},children:[
+        new TextRun({text:'QR DE CONFERÊNCIA',bold:true,size:12}),
+        new TextRun({text:'\n'+qr,size:7})
+       ]})
+      ]})
+    ]})]
+   }));
+
+   sections.push({
+    properties:{
+     page:{
+      size:{width:mm(100),height:mm(100)},
+      margin:{top:mm(4),right:mm(4),bottom:mm(4),left:mm(4),header:0,footer:0,gutter:0}
+     }
+    },
+    children
+   });
+  }
+
+  const doc=new Document({creator:'EXTRAPLAST',title:`Etiquetas ${c.romaneio||c.id}`,sections});
+  const blob=await Packer.toBlob(doc);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`Etiquetas_Carga_${String(c.romaneio||c.id).replace(/[^a-z0-9_-]/gi,'_')}_100x100.docx`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  toast(`${itens.length} etiqueta(s) Word gerada(s)`);
+ }catch(e){
+  console.error(e);toast('Erro ao gerar Word: '+(e?.message||e));
+ }
+}
+
+function gerarEtiquetasCarga(){
+ const c=cargaSelecionada();
+ if(!c)return toast('Abra uma carga primeiro');
+ if(String(c.status||'').toUpperCase()==='CANCELADA')return toast('Carga cancelada não pode gerar etiquetas');
+ const itens=itensCargaSelecionada();
+ if(!itens.length)return toast('Salve os itens da carga antes de gerar as etiquetas');
+ const w=window.open('','_blank');
+ if(!w)return toast('O navegador bloqueou a janela de etiquetas. Libere pop-ups para este site.');
+ const cards=itens.map((ci,i)=>{
+   const d=dadosPalletCarga(ci), p=d.produto||{}, ped=d.pedido||{};
+   const np=numeroPalletEtiqueta(ci,i), qr=qrPayloadCarga(c,ci,i);
+   return `<section class="etiqueta">
+     <div class="topo"><div><b>EXTRAPLAST</b><br><span>ETIQUETA DE PALLET</span></div><div class="pallet">PALLET ${np}</div></div>
+     <div class="linha"><b>Romaneio:</b> ${E(c.romaneio||'')}</div>
+     <div class="linha"><b>Destinatário:</b> ${E(c.destinatario||'')}</div>
+     <div class="linha"><b>Destino:</b> ${E((c.cidade_destino||'')+(c.uf?'/'+c.uf:''))}</div>
+     <div class="linha"><b>Pedido:</b> ${E(ped.numero_pedido||'')}</div>
+     <div class="produto"><div class="codigo">${E(p.codigo||'')}</div><div>${E(p.descricao||'')}</div></div>
+     <div class="qtd">QUANTIDADE: ${F(ci.quantidade)}</div>
+     <div class="qrwrap"><div id="qr_${i}" class="qr"></div><div class="qrcode">${E(qr)}</div></div>
+   </section>`;
+ }).join('');
+ w.document.open();
+ w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Etiquetas ${E(c.romaneio||c.id)}</title>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+ <style>
+ @page{size:100mm 100mm;margin:0}*{box-sizing:border-box}html,body{width:100mm;margin:0;padding:0;font-family:Arial;color:#111}
+ .etiqueta{width:100mm;height:100mm;border:0;padding:4mm;page-break-after:always;display:flex;flex-direction:column;overflow:hidden}
+ .etiqueta:last-child{page-break-after:auto}.topo{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #111;padding-bottom:2mm;margin-bottom:2mm;font-size:9px}
+ .topo b{font-size:15px}.pallet{font-size:17px;font-weight:800}.linha{font-size:8px;margin:.8mm 0}.produto{border:1px solid #111;padding:2mm;margin-top:2mm;font-size:9px;font-weight:700;display:flex;gap:3mm;align-items:center;line-height:1.15}
+ .codigo{font-size:15px}.qtd{font-size:15px;font-weight:800;margin-top:2mm}.qrwrap{margin-top:auto;display:flex;align-items:end;gap:2mm}.qr img,.qr canvas{width:28mm!important;height:28mm!important}.qrcode{font-size:4px;word-break:break-all;max-width:58mm}
+ .bar{position:fixed;right:10px;top:10px}@media print{.bar{display:none}}
+ </style></head><body><button class="bar" onclick="window.print()">Imprimir etiquetas</button>${cards}
+ <script>
+ const payloads=${JSON.stringify(itens.map((ci,i)=>qrPayloadCarga(c,ci,i)))};
+ window.addEventListener('load',()=>{payloads.forEach((x,i)=>new QRCode(document.getElementById('qr_'+i),{text:x,width:220,height:220,correctLevel:QRCode.CorrectLevel.M}));});
+ <\/script></body></html>`);
+ w.document.close();
+}
+function abrirResumoConferenciaCarga(){
+ const c=cargaSelecionada();
+ if(!c)return toast('Abra uma carga primeiro');
+ const itens=itensCargaSelecionada();
+ if(!itens.length)return toast('Salve os itens da carga primeiro');
+ const linhas=itens.map(ci=>{
+   const d=dadosPalletCarga(ci),p=d.produto||{};
+   return `<tr><td>${N(ci.numero_pallet)}</td><td>${E(p.codigo||'')}</td><td>${E(p.descricao||'')}</td><td>${F(ci.quantidade)}</td><td><span class="badge">PENDENTE</span></td></tr>`;
+ }).join('');
+ const w=window.open('','_blank');
+ if(!w)return toast('O navegador bloqueou a janela de conferência. Libere pop-ups para este site.');
+ w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Conferência ${E(c.romaneio||c.id)}</title>
+ <style>body{font-family:Arial;margin:20px;color:#172433}h1{margin-bottom:4px}.muted{color:#667085}.card{border:1px solid #d7e0e8;border-radius:10px;padding:16px;margin:14px 0}.metric{font-size:30px;font-weight:800}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}.badge{background:#fff1c2;padding:5px 9px;border-radius:14px;font-weight:bold}</style></head><body>
+ <h1>Conferência da Carga ${E(c.romaneio||'')}</h1><div class="muted">${E(c.destinatario||'')} · ${E((c.cidade_destino||'')+(c.uf?'/'+c.uf:''))}</div>
+ <div class="card"><div class="metric">0 / ${itens.length}</div><div class="muted">Pallets conferidos</div></div>
+ <div class="card"><b>Etapa atual:</b> etiquetas e identificação por QR Code prontas. A leitura pela câmera + foto do pallet será ativada na próxima etapa após criarmos a estrutura de conferência no Supabase.</div>
+ <table><thead><tr><th>Pallet</th><th>Código</th><th>Descrição</th><th>Qtd.</th><th>Status</th></tr></thead><tbody>${linhas}</tbody></table>
+ </body></html>`);
+ w.document.close();
+}
+
+async function separarCargaPP(){
+ let id=N($('cargaId').value);if(!id)return toast('Abra uma carga');
+ if(!cargaItensDB.some(x=>x.carga_id===id))return toast('Salve os itens da carga primeiro');
+ if(!confirm('Separar e reservar no WMS o estoque PP desta carga?'))return;
+ let {error}=await sb.rpc('separar_carga_pp',{p_carga_id:id});if(error)return toast(error.message);
+ toast('PP separado e reservado para a carga');await load();abrirCarga(id)
+}
+async function baixarCargaPP(){
+ let id=N($('cargaId').value);if(!id)return toast('Abra uma carga');
+ let c=cargas.find(x=>x.id===id);if(c?.estoque_baixado)return toast('O estoque desta carga já foi baixado');
+ if(String(c?.status||'').toUpperCase()!=='ENTREGUE')return toast('Primeiro altere o status da carga para ENTREGUE');
+ if(!confirm('CONFIRMAR BAIXA FÍSICA DO ESTOQUE PP?\n\nEsta operação registrará a saída por posição/lote e não deverá ser repetida.'))return;
+ let {data,error}=await sb.rpc('baixar_estoque_carga_pp',{p_carga_id:id});if(error)return toast(error.message);
+ toast(data?.ja_baixado?'Carga já estava baixada':`Estoque PP baixado: ${F(data?.quantidade_baixada)} unidades`);
+ await load();abrirCarga(id)
+}
+async function alterarStatusCarga(){
+ let id=N($('cargaId').value);if(!id)return toast('Abra ou salve uma carga');
+ let st=$('cStatus').value;if(st==='ENTREGUE'&&!confirm('Confirmar carga como ENTREGUE? As quantidades serão lançadas como entregues nos pedidos vinculados.'))return;
+ let {error}=await sb.rpc('atualizar_status_carga',{p_carga_id:id,p_status:st});if(error)return toast(error.message);
+ toast(`Status atualizado para ${st}`);await load();abrirCarga(id)
+}
+
+
+const axN=v=>Number(String(v??'').trim().replace(',','.'))||0,axQ=v=>axN(v).toLocaleString('pt-BR',{maximumFractionDigits:3}),axM=v=>axN(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const axSaldo=id=>AX.m.filter(x=>N(x.item_id)===N(id)).reduce((a,x)=>a+(x.tipo==='entrada'?axN(x.quantidade):-axN(x.quantidade)),0);
+const axItem=id=>{let i=AX.i.find(x=>N(x.id)===N(id));return i?`${i.codigo} — ${i.descricao}`:''},axCat=id=>AX.c.find(x=>N(x.id)===N(id))?.nome||'';
+async function axLoad(){let a=await Promise.all(['itens','movimentacoes','categorias','fornecedores','setores','centros_custo'].map(t=>sb.from(t).select('*')));if(a.some(x=>x.error)){toast(a.find(x=>x.error)?.error.message);return false}[AX.i,AX.m,AX.c,AX.f,AX.set,AX.cc]=a.map(x=>x.data||[]);return true}
+async function axPage(p){if(!await axLoad())return;document.querySelectorAll('#axNav button').forEach(b=>b.className='sec');let names={dashboard:'Dashboard',itens:'Itens',entrada:'Entrada',saida:'Consumo / Saída',estoque:'Estoque',historico:'Histórico',cadastros:'Cadastros'};[...document.querySelectorAll('#axNav button')].find(b=>b.textContent.trim()===names[p])?.classList.replace('sec','pri');({dashboard:axDash,itens:axItens,entrada:()=>axMov('entrada'),saida:()=>axMov('saida'),estoque:axEstoque,historico:axHist,cadastros:axCad}[p]||axDash)()}
+function axStatus(i){return axSaldo(i.id)<axN(i.estoque_minimo)?'<b style="color:#b91c1c">BAIXO</b>':'NORMAL'}
+function axTable(a,edit=false){return `<div class="tw"><table><thead><tr><th>Código</th><th>Descrição</th><th>Categoria</th><th>Un.</th><th>Saldo</th><th>Mín.</th><th>Máx.</th><th>Status</th>${edit?'<th>Ação</th>':''}</tr></thead><tbody>${a.map(i=>`<tr><td>${E(i.codigo)}</td><td>${E(i.descricao)}</td><td>${E(axCat(i.categoria_id))}</td><td>${E(i.unidade)}</td><td><b>${axQ(axSaldo(i.id))}</b></td><td>${axQ(i.estoque_minimo)}</td><td>${axQ(i.estoque_maximo)}</td><td>${axStatus(i)}</td>${edit?`<td><button class="sec" onclick="axEdit(${i.id})">Editar</button></td>`:''}</tr>`).join('')}</tbody></table></div>`}
+function axDash(){let a=AX.i.filter(x=>x.ativo!==false),b=a.filter(x=>axSaldo(x.id)<axN(x.estoque_minimo)),v=a.reduce((z,x)=>z+axSaldo(x.id)*axN(x.custo_unitario),0);$('axBody').innerHTML=`<div class="cards"><div class="card"><span>Itens ativos</span><b>${a.length}</b></div><div class="card"><span>Estoque baixo</span><b>${b.length}</b></div><div class="card"><span>Movimentações</span><b>${AX.m.length}</b></div><div class="card"><span>Valor estimado</span><b>${axM(v)}</b></div></div><div class="box"><h3>Itens abaixo do mínimo</h3>${b.length?axTable(b):'<p>Nenhum item abaixo do mínimo.</p>'}</div>`}
+function axItens(){$('axBody').innerHTML=`<div class="box"><h3>Cadastro de Item</h3><input type="hidden" id="axi"><div class="form"><div><label>Código *</label><input id="axc"></div><div><label>Descrição *</label><input id="axd"></div><div><label>Categoria</label><select id="axcat"><option value="">Selecione</option>${AX.c.map(x=>`<option value="${x.id}">${E(x.nome)}</option>`).join('')}</select></div><div><label>Unidade *</label><input id="axu"></div><div><label>Estoque mínimo</label><input id="axmin" type="number" step=".001"></div><div><label>Estoque máximo</label><input id="axmax" type="number" step=".001"></div><div><label>Localização</label><input id="axloc"></div><div><label>Fornecedor</label><select id="axfor"><option value="">Selecione</option>${AX.f.map(x=>`<option value="${x.id}">${E(x.nome)}</option>`).join('')}</select></div><div><label>Custo unitário</label><input id="axcus" type="number" step=".01"></div><div><label>Observações</label><input id="axobs"></div></div><div class="actions"><button class="pri" onclick="axSaveItem()">Salvar item</button><button class="sec" onclick="axPage('itens')">Limpar</button></div></div><div class="box"><h3>Itens</h3><input id="axsearch" placeholder="Pesquisar código ou descrição..." oninput="axFilter()"><div id="axlist">${axTable(AX.i,true)}</div></div>`}
+function axFilter(){let q=$('axsearch').value.toLowerCase();$('axlist').innerHTML=axTable(AX.i.filter(i=>(i.codigo+' '+i.descricao).toLowerCase().includes(q)),true)}
+function axEdit(id){let i=AX.i.find(x=>x.id===id);if(!i)return;[['axi',i.id],['axc',i.codigo],['axd',i.descricao],['axcat',i.categoria_id||''],['axu',i.unidade],['axmin',i.estoque_minimo],['axmax',i.estoque_maximo],['axloc',i.localizacao],['axfor',i.fornecedor_id||''],['axcus',i.custo_unitario],['axobs',i.observacoes]].forEach(a=>$(a[0]).value=a[1]??'');$('axc').scrollIntoView({behavior:'smooth'})}
+async function axSaveItem(){let id=N($('axi').value),o={codigo:$('axc').value.trim(),descricao:$('axd').value.trim(),categoria_id:N($('axcat').value)||null,unidade:$('axu').value.trim().toUpperCase(),estoque_minimo:axN($('axmin').value),estoque_maximo:axN($('axmax').value),localizacao:$('axloc').value.trim(),fornecedor_id:N($('axfor').value)||null,custo_unitario:axN($('axcus').value),observacoes:$('axobs').value.trim(),ativo:true};if(!o.codigo||!o.descricao||!o.unidade)return toast('Preencha código, descrição e unidade');let z=id?await sb.from('itens').update(o).eq('id',id):await sb.from('itens').insert(o);if(z.error)return toast(z.error.message);toast('Item salvo');axPage('itens')}
+function axMov(t){let en=t==='entrada';$('axBody').innerHTML=`<div class="box"><h3>${en?'Entrada de Material':'Consumo / Saída'}</h3><div class="form"><div><label>Item *</label><select id="axmi"><option value="">Selecione</option>${AX.i.filter(x=>x.ativo!==false).map(i=>`<option value="${i.id}">${E(i.codigo)} — ${E(i.descricao)} | saldo ${axQ(axSaldo(i.id))}</option>`).join('')}</select></div><div><label>Quantidade *</label><input id="axmq"></div><div><label>Data *</label><input id="axmd" type="date" value="${new Date().toISOString().slice(0,10)}"></div>${en?`<div><label>Fornecedor</label><select id="axmf"><option value="">Selecione</option>${AX.f.map(x=>`<option value="${x.id}">${E(x.nome)}</option>`).join('')}</select></div><div><label>Nota Fiscal</label><input id="axnf"></div><div><label>Custo unitário</label><input id="axmc"></div>`:`<div><label>Setor *</label><select id="axms" onchange="axFillCC()"><option value="">Selecione</option>${AX.set.map(x=>`<option value="${x.id}">${E(x.nome)}</option>`).join('')}</select></div><div><label>Centro de Custo</label><select id="axmcc"><option value="">Selecione o setor</option></select></div><div><label>Motivo</label><input id="axmot"></div>`}<div><label>Observação</label><input id="axmo"></div></div><div class="actions"><button class="pri" onclick="axSaveMov('${t}')">Registrar ${en?'entrada':'saída'}</button></div></div>`}
+function axFillCC(){let sid=N($('axms').value);$('axmcc').innerHTML='<option value="">Selecione</option>'+AX.cc.filter(x=>N(x.setor_id)===sid).map(x=>`<option value="${x.id}">${E((x.codigo?x.codigo+' — ':'')+x.nome)}</option>`).join('')}
+async function axSaveMov(t){let id=N($('axmi').value),q=axN($('axmq').value),i=AX.i.find(x=>x.id===id);if(!i||q<=0)return toast('Selecione o item e informe a quantidade');if(t==='saida'&&q>axSaldo(id))return toast(`Estoque insuficiente. Saldo: ${axQ(axSaldo(id))}`);let o={item_id:id,tipo:t,quantidade:q,data_movimentacao:$('axmd').value,usuario_id:null,observacao:$('axmo').value.trim()};if(t==='entrada'){o.fornecedor_id=N($('axmf').value)||null;o.nota_fiscal=$('axnf').value.trim();o.custo_unitario=axN($('axmc').value)}else{let sid=N($('axms').value);if(!sid)return toast('Selecione o setor');o.setor=AX.set.find(x=>x.id===sid)?.nome||'';o.centro_custo=AX.cc.find(x=>x.id===N($('axmcc').value))?.nome||'';o.motivo=$('axmot').value.trim()}let z=await sb.from('movimentacoes').insert(o);if(z.error)return toast(z.error.message);if(t==='entrada'&&o.custo_unitario>0)await sb.from('itens').update({custo_unitario:o.custo_unitario}).eq('id',id);toast(t==='entrada'?'Entrada registrada':'Saída registrada');axPage(t)}
+function axEstoque(){$('axBody').innerHTML=`<div class="box"><h3>Estoque Atual</h3>${axTable(AX.i)}</div>`}
+function axHist(){$('axBody').innerHTML=`<div class="box"><h3>Histórico de Movimentações</h3><div class="form"><div><label>Tipo</label><select id="axht" onchange="axRenderHist()"><option value="">Todos</option><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div><div><label>Pesquisar</label><input id="axhq" oninput="axRenderHist()" placeholder="Item, setor, NF..."></div></div><div id="axhist"></div></div>`;axRenderHist()}
+function axRenderHist(){let t=$('axht')?.value||'',q=($('axhq')?.value||'').toLowerCase(),a=AX.m.filter(m=>(!t||m.tipo===t)&&(`${axItem(m.item_id)} ${m.setor||''} ${m.centro_custo||''} ${m.nota_fiscal||''} ${m.motivo||''}`).toLowerCase().includes(q));$('axhist').innerHTML=`<div class="tw"><table><thead><tr><th>Data</th><th>Tipo</th><th>Item</th><th>Qtd.</th><th>Setor</th><th>Centro de Custo</th><th>NF / Motivo</th></tr></thead><tbody>${a.map(m=>`<tr><td>${m.data_movimentacao?new Date(m.data_movimentacao+'T12:00').toLocaleDateString('pt-BR'):''}</td><td>${E(m.tipo).toUpperCase()}</td><td>${E(axItem(m.item_id))}</td><td>${axQ(m.quantidade)}</td><td>${E(m.setor||'')}</td><td>${E(m.centro_custo||'')}</td><td>${E(m.nota_fiscal||m.motivo||'')}</td></tr>`).join('')}</tbody></table></div>`}
+function axCad(){$('axBody').innerHTML=`<div class="box"><h3>Cadastros do Almoxarifado</h3><div class="form"><div><label>Categoria</label><input id="axcn"><button class="pri" onclick="axAdd('categorias','axcn')">Adicionar</button></div><div><label>Fornecedor</label><input id="axfn"><button class="pri" onclick="axAdd('fornecedores','axfn')">Adicionar</button></div><div><label>Setor</label><input id="axsn"><input id="axsr" placeholder="Responsável"><button class="pri" onclick="axAddSet()">Adicionar</button></div><div><label>Centro de Custo</label><input id="axccc" placeholder="Código"><input id="axccn" placeholder="Nome"><select id="axccs"><option value="">Setor</option>${AX.set.map(x=>`<option value="${x.id}">${E(x.nome)}</option>`).join('')}</select><button class="pri" onclick="axAddCC()">Adicionar</button></div></div></div>`}
+async function axAdd(t,id){let nome=$(id).value.trim();if(!nome)return toast('Informe o nome');let z=await sb.from(t).insert({nome,ativo:true});if(z.error)return toast(z.error.message);toast('Cadastro realizado');axPage('cadastros')}
+async function axAddSet(){let nome=$('axsn').value.trim();if(!nome)return toast('Informe o setor');let z=await sb.from('setores').insert({nome,responsavel:$('axsr').value.trim(),ativo:true});if(z.error)return toast(z.error.message);toast('Setor cadastrado');axPage('cadastros')}
+async function axAddCC(){let nome=$('axccn').value.trim(),sid=N($('axccs').value);if(!nome||!sid)return toast('Informe nome e setor');let z=await sb.from('centros_custo').insert({codigo:$('axccc').value.trim()||null,nome,setor_id:sid,ativo:true});if(z.error)return toast(z.error.message);toast('Centro de custo cadastrado');axPage('cadastros')}
+
+
+let prodPage=1;const prodPerPage=50;let prodSelecionados=new Set();
+let simpleStocks={GE:[],PA:[]};
+try{let z=JSON.parse(localStorage.getItem('extraplast_ge_pa')||'null');if(z)simpleStocks={GE:z.GE||[],PA:z.PA||[]}}catch(e){}
+let stockTipoAtual='PP';
+function stockView(t,btn){
+ stockTipoAtual=t;
+ document.querySelectorAll('#est .tab').forEach(x=>x.classList.remove('on'));if(btn)btn.classList.add('on');
+ renderStockFiltrado()
+}
+function renderStockFiltrado(){
+ let t=stockTipoAtual, busca=($('stockBusca')?.value||'').trim().toLowerCase(), fam=($('stockFam')?.value||'');
+ if(t==='PP'){
+   let familias=[...new Set(produtos.map(x=>x.familia).filter(Boolean))].sort();
+   let dados=produtos.map(p=>{let a=pp.filter(x=>N(x.produto_id)===N(p.id)),fis=a.reduce((z,x)=>z+N(x.quantidade),0),res=a.reduce((z,x)=>z+N(x.reservado),0);return {p,fis,res}})
+     .filter(x=>(x.fis!==0||x.res!==0))
+     .filter(x=>(!busca||(String(x.p.codigo||'')+' '+String(x.p.descricao||'')).toLowerCase().includes(busca)))
+     .filter(x=>(!fam||String(x.p.familia||'')===fam));
+   $('stockBody').innerHTML=`<div class="box"><h3>PP · Produto Pronto</h3><p class="muted">Exibindo somente itens com saldo. Pesquise por código/descrição e família.</p>
+   <div class="form"><div><label>Pesquisar código / descrição</label><input id="stockBusca" value="${E(busca)}" placeholder="Ex.: 2315" oninput="renderStockFiltrado()"></div>
+   <div><label>Família</label><select id="stockFam" onchange="renderStockFiltrado()"><option value="">Todas</option>${familias.map(f=>`<option ${fam===String(f)?'selected':''}>${E(f)}</option>`).join('')}</select></div></div>
+   <div class="actions" style="margin:10px 0"><button class="pri" onclick="exportarEstoqueExcel()">Gerar relatório Excel</button> <button class="sec" onclick="exportarWmsDetalhado()">Relatório detalhado WMS</button></div>
+   <div class="actions" style="margin:10px 0"><button class="pri" onclick="exportarEstoqueExcel()">Gerar relatório Excel</button> <button class="sec" onclick="exportarWmsDetalhado()">Relatório detalhado WMS</button></div>
+   <div class="muted" style="margin:8px 0">Itens encontrados: <b>${dados.length}</b></div>
+   <div class="tw"><table><thead><tr><th>Produto</th><th>Descrição</th><th>Família</th><th>Físico</th><th>Reservado</th><th>Disponível</th></tr></thead><tbody>${dados.map(x=>`<tr><td>${E(x.p.codigo)}</td><td>${E(x.p.descricao)}</td><td>${E(x.p.familia||'')}</td><td>${F(x.fis)}</td><td>${F(x.res)}</td><td>${F(x.fis-x.res)}</td></tr>`).join('')||'<tr><td colspan="6">Nenhum item com estoque encontrado.</td></tr>'}</tbody></table></div></div>`;
+   return
+ }
+ if(t==='MP'){
+   let dados=mps.map(m=>{let a=emp.filter(x=>N(x.materia_prima_id)===N(m.id)),q=a.reduce((z,x)=>z+N(x.quantidade),0);return {m,q}})
+     .filter(x=>x.q!==0)
+     .filter(x=>!busca||(String(x.m.codigo||'')+' '+String(x.m.descricao||'')).toLowerCase().includes(busca));
+   $('stockBody').innerHTML=`<div class="box"><h3>MP · Matéria-Prima</h3><p class="muted">Exibindo somente matérias-primas com saldo.</p>
+   <div class="form"><div><label>Pesquisar código / descrição</label><input id="stockBusca" value="${E(busca)}" placeholder="Código ou descrição" oninput="renderStockFiltrado()"></div></div>
+   <div class="muted" style="margin:8px 0">Itens encontrados: <b>${dados.length}</b></div>
+   <div class="tw"><table><thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th>Quantidade</th></tr></thead><tbody>${dados.map(x=>`<tr><td>${E(x.m.codigo)}</td><td>${E(x.m.descricao)}</td><td>${E(x.m.unidade||'')}</td><td>${F(x.q)}</td></tr>`).join('')||'<tr><td colspan="4">Nenhuma matéria-prima com estoque encontrada.</td></tr>'}</tbody></table></div></div>`;
+   return
+ }
+ renderSimpleStock(t)
+}
+function exportarWmsDetalhado(){
+ if(typeof XLSX==='undefined')return toast('Biblioteca do Excel não carregou.');
+ let lm=new Map(locais.map(x=>[x.id,x])),em=new Map(ends.map(x=>[x.id,x])),linhas=[];
+ pp.filter(x=>N(x.quantidade)!==0||N(x.reservado)!==0||N(x.bloqueado)!==0).forEach(x=>{
+   let p=produtos.find(z=>N(z.id)===N(x.produto_id)),e=em.get(x.endereco_wms_id),l=lm.get(x.local_id);
+   linhas.push({'Tipo':'PP','Código':p?.codigo||'','Descrição':p?.descricao||'','Família':p?.familia||'','Local':l?.codigo||'PP','Posição WMS':e?.codigo||'','Lote':x.lote||'','Físico':N(x.quantidade),'Reservado':N(x.reservado),'Bloqueado':N(x.bloqueado),'Disponível':N(x.quantidade)-N(x.reservado)-N(x.bloqueado),'Status posição':e?.status||''})
+ });
+ emp.filter(x=>N(x.quantidade)!==0||N(x.reservado)!==0||N(x.bloqueado)!==0).forEach(x=>{
+   let m=mps.find(z=>N(z.id)===N(x.materia_prima_id)),e=em.get(x.endereco_wms_id),l=lm.get(x.local_id);
+   linhas.push({'Tipo':'MP','Código':m?.codigo||'','Descrição':m?.descricao||'','Família':'','Local':l?.codigo||'MP','Posição WMS':e?.codigo||'','Lote':x.lote||'','Físico':N(x.quantidade),'Reservado':N(x.reservado),'Bloqueado':N(x.bloqueado),'Disponível':N(x.quantidade)-N(x.reservado)-N(x.bloqueado),'Status posição':e?.status||''})
+ });
+ if(!linhas.length)return toast('Não há saldos WMS para exportar.');
+ let ws=XLSX.utils.json_to_sheet(linhas);ws['!cols']=[10,14,45,22,10,20,16,12,12,12,12,16].map(w=>({wch:w}));
+ let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'WMS Detalhado');
+ XLSX.writeFile(wb,`WMS_Detalhado_${new Date().toISOString().slice(0,10)}.xlsx`);
+ toast('Relatório detalhado WMS gerado.')
+}
+function exportarEstoqueExcel(){
+ if(typeof XLSX==='undefined')return toast('Biblioteca do Excel não carregou. Atualize a página e tente novamente.');
+ let busca=($('stockBusca')?.value||'').trim().toLowerCase(),fam=($('stockFam')?.value||''),linhas=[],titulo='';
+ if(stockTipoAtual==='PP'){
+   titulo='Estoque_PP';
+   linhas=produtos.map(p=>{let a=pp.filter(x=>N(x.produto_id)===N(p.id)),fis=a.reduce((z,x)=>z+N(x.quantidade),0),res=a.reduce((z,x)=>z+N(x.reservado),0);return {p,fis,res}})
+    .filter(x=>x.fis!==0||x.res!==0)
+    .filter(x=>!busca||(String(x.p.codigo||'')+' '+String(x.p.descricao||'')).toLowerCase().includes(busca))
+    .filter(x=>!fam||String(x.p.familia||'')===fam)
+    .map(x=>({'Código':x.p.codigo,'Descrição':x.p.descricao,'Família':x.p.familia||'','Físico':x.fis,'Reservado':x.res,'Disponível':x.fis-x.res}));
+ }else{
+   titulo='Estoque_MP';
+   linhas=mps.map(m=>{let a=emp.filter(x=>N(x.materia_prima_id)===N(m.id)),q=a.reduce((z,x)=>z+N(x.quantidade),0);return {m,q}})
+    .filter(x=>x.q!==0)
+    .filter(x=>!busca||(String(x.m.codigo||'')+' '+String(x.m.descricao||'')).toLowerCase().includes(busca))
+    .map(x=>({'Código':x.m.codigo,'Descrição':x.m.descricao,'Unidade':x.m.unidade||'','Quantidade':x.q}));
+ }
+ if(!linhas.length)return toast('Não há itens para gerar o relatório com os filtros atuais.');
+ let ws=XLSX.utils.json_to_sheet(linhas);
+ ws['!cols']=stockTipoAtual==='PP'?[{wch:14},{wch:48},{wch:24},{wch:14},{wch:14},{wch:14}]:[{wch:14},{wch:50},{wch:12},{wch:16}];
+ let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,titulo);
+ let data=new Date().toISOString().slice(0,10);
+ XLSX.writeFile(wb,`${titulo}_${data}.xlsx`);
+ toast('Relatório Excel gerado com os filtros atuais.')
+}
+function renderSimpleStock(t){
+ let nome=t==='GE'?'Galpão Embalagens':'Pátio',a=simpleStocks[t]||[];
+ $('stockBody').innerHTML=`<div class="box"><h3>${t} · ${nome}</h3><p class="muted">Lista simples: nomenclatura e observação.</p><div class="form"><div><label>Nomenclatura</label><input id="ssn"></div><div><label>Observação</label><input id="sso"></div></div><div class="actions"><button class="pri" onclick="addSimpleStock('${t}')">Adicionar</button></div></div><div class="box"><div class="tw"><table><thead><tr><th>Nomenclatura</th><th>Observação</th><th></th></tr></thead><tbody>${a.map((x,i)=>`<tr><td>${E(x.nome)}</td><td>${E(x.obs)}</td><td><button class="danger" onclick="delSimpleStock('${t}',${i})">Excluir</button></td></tr>`).join('')}</tbody></table></div></div>`
+}
+function addSimpleStock(t){let nome=$('ssn').value.trim(),obs=$('sso').value.trim();if(!nome)return toast('Informe a nomenclatura');simpleStocks[t].push({nome,obs});localStorage.setItem('extraplast_ge_pa',JSON.stringify(simpleStocks));renderSimpleStock(t);toast('Local adicionado')}
+function delSimpleStock(t,i){simpleStocks[t].splice(i,1);localStorage.setItem('extraplast_ge_pa',JSON.stringify(simpleStocks));renderSimpleStock(t)}
+
+async function salvarLocal(){let o={codigo:$('locCod').value.trim(),nome:$('locNome').value.trim(),tipo:$('locTipo').value};let z=await sb.from('locais_estoque').insert(o);if(z.error)return toast(z.error.message);toast('Local criado');load()}async function salvarEndereco(){let o={local_id:N($('wLocal').value),codigo:$('wCod').value.trim(),rua:$('wRua').value,modulo:$('wMod').value,nivel:$('wNivel').value,posicao:$('wPos').value,capacidade:N($('wCap').value),status:$('wStatus').value};let z=await sb.from('enderecos_wms').insert(o);if(z.error)return toast(z.error.message);toast('Endereço criado');load()}function familias(){return [...new Set(produtos.map(x=>(x.familia||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))}
+function renderFiltrosFamilia(){let fs=familias(),opts='<option value="">Todas</option>'+fs.map(f=>`<option value="${E(f)}">${E(f)}</option>`).join('');if($('ppFamilia')){let v=$('ppFamilia').value;$('ppFamilia').innerHTML=opts;$('ppFamilia').value=v}if($('wFamilia')){let v=$('wFamilia').value;$('wFamilia').innerHTML=opts;$('wFamilia').value=v}if($('familiasLista'))$('familiasLista').innerHTML=fs.map(f=>`<option value="${E(f)}"></option>`).join('')}
+async function editarMP(id){
+ let m=mps.find(x=>x.id===id);if(!m)return;
+ let codigo=prompt('Código da matéria-prima:',m.codigo);if(codigo===null)return;codigo=codigo.trim();if(!codigo)return toast('Código obrigatório');
+ let descricao=prompt('Descrição da matéria-prima:',m.descricao);if(descricao===null)return;descricao=descricao.trim();if(!descricao)return toast('Descrição obrigatória');
+ let unidade=prompt('Unidade:',m.unidade||'KG');if(unidade===null)return;
+ let especificacao=prompt('Especificação:',m.especificacao||'');if(especificacao===null)return;
+ let {error}=await sb.from('materias_primas').update({codigo,descricao,unidade:unidade.trim()||'KG',especificacao:especificacao.trim()||null}).eq('id',id);
+ if(error)return toast(error.message);toast('Matéria-prima atualizada');await load()
+}
+function renderProdutos(){renderFiltrosFamilia();if(!$('prodLista'))return;let fams=[...new Set(produtos.map(x=>(x.familia||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));if($('prodFamFiltro')){let atual=$('prodFamFiltro').value;$('prodFamFiltro').innerHTML='<option value="">Todas</option>'+fams.map(f=>`<option ${f===atual?'selected':''}>${E(f)}</option>`).join('')}let q=($('prodBusca')?.value||'').trim().toLowerCase(),fam=$('prodFamFiltro')?.value||'',a=produtos.filter(x=>x.ativo!==false&&(!q||(String(x.codigo||'')+' '+String(x.descricao||'')).toLowerCase().includes(q))&&(!fam||(x.familia||'')===fam)),pages=Math.max(1,Math.ceil(a.length/prodPerPage));prodPage=Math.min(Math.max(1,prodPage),pages);let ini=(prodPage-1)*prodPerPage,vis=a.slice(ini,ini+prodPerPage);$('prodLista').innerHTML=vis.map(x=>`<tr><td><input type="checkbox" ${prodSelecionados.has(x.id)?'checked':''} onchange="toggleProdutoSelecao(${x.id},this.checked)"></td><td>${E(x.codigo)}</td><td>${E(x.descricao)}</td><td>${E(x.familia||'')}</td><td>${F(x.peso_unitario)} kg</td><td><button class="sec" onclick="editarProdutoCompleto(${x.id})">Editar</button> <button class="sec" onclick="editarFamiliaProduto(${x.id})">Família</button> <button class="sec" onclick="converterProdutoMP(${x.id})">Converter para MP</button> <button class="danger" onclick="deletarProduto(${x.id})">Excluir</button></td></tr>`).join('');setHTML('prodResumo',`Produtos encontrados: <b>${a.length}</b> · exibindo ${a.length?ini+1:0}–${Math.min(ini+prodPerPage,a.length)}`);setText('prodPagInfo',`Página ${prodPage} de ${pages}`)}
+function prodPrev(){if(prodPage>1){prodPage--;renderProdutos()}}
+function prodNext(){let q=($('prodBusca')?.value||'').trim().toLowerCase(),fam=$('prodFamFiltro')?.value||'',n=produtos.filter(x=>(!q||(String(x.codigo||'')+' '+String(x.descricao||'')).toLowerCase().includes(q))&&(!fam||(x.familia||'')===fam)).length;if(prodPage<Math.max(1,Math.ceil(n/prodPerPage))){prodPage++;renderProdutos()}}
+async function salvarProduto(){let o={codigo:$('prodCod').value.trim(),descricao:$('prodDesc').value.trim(),familia:$('prodFam').value.trim()||null,peso_unitario:N($('prodPeso').value)};if(!o.codigo||!o.descricao)return toast('Informe código e descrição');let {error}=await sb.from('itens_carga').insert(o);if(error)return toast(error.message);toast('Produto cadastrado');await load()}
+function toggleProdutoSelecao(id,ok){ok?prodSelecionados.add(id):prodSelecionados.delete(id);setHTML('prodResumo',($('prodResumo')?.innerHTML||'')+` · <b>${prodSelecionados.size}</b> selecionado(s)`)}
+function produtosPaginaAtual(){let q=($('prodBusca')?.value||'').trim().toLowerCase(),fam=$('prodFamFiltro')?.value||'',a=produtos.filter(x=>x.ativo!==false&&(!q||(String(x.codigo||'')+' '+String(x.descricao||'')).toLowerCase().includes(q))&&(!fam||(x.familia||'')===fam)),ini=(prodPage-1)*prodPerPage;return a.slice(ini,ini+prodPerPage)}
+function selecionarProdutosPagina(){produtosPaginaAtual().forEach(x=>prodSelecionados.add(x.id));renderProdutos()}
+function limparSelecaoProdutos(){prodSelecionados.clear();renderProdutos()}
+async function converterProdutoMP(id){let x=produtos.find(p=>p.id===id);if(!x)return;if(!confirm(`Converter ${x.codigo} - ${x.descricao} para Matéria-Prima?`))return;await executarConversaoMP([x])}
+async function converterSelecionadosMP(){let arr=produtos.filter(x=>prodSelecionados.has(x.id));if(!arr.length)return toast('Selecione ao menos um produto');if(!confirm(`Converter ${arr.length} produto(s) selecionado(s) para Matéria-Prima?`))return;await executarConversaoMP(arr)}
+async function executarConversaoMP(arr){
+ let convertidos=0,jaExistiam=0,erros=[];
+ for(const x of arr){
+   let existente=mps.find(m=>String(m.codigo).toLowerCase()===String(x.codigo).toLowerCase());
+   if(!existente){
+     let {error}=await sb.from('materias_primas').insert({codigo:String(x.codigo),descricao:x.descricao,unidade:'UN',ativo:true});
+     if(error){erros.push(`${x.codigo}: ${error.message}`);continue}
+   }else jaExistiam++;
+   // Segurança: não apagar. Desativa o cadastro de produto para preservar vínculos históricos/FKs.
+   let {error:e2}=await sb.from('itens_carga').update({ativo:false}).eq('id',x.id);
+   if(e2){erros.push(`${x.codigo}: MP criada, mas não foi possível desativar Produto (${e2.message})`);continue}
+   convertidos++;prodSelecionados.delete(x.id)
+ }
+ toast(`${convertidos} convertido(s) para MP${jaExistiam?` · ${jaExistiam} já existia(m) em MP`:''}${erros.length?` · ${erros.length} erro(s)`:''}`);
+ if(erros.length)console.error('Conversão Produto→MP',erros);
+ await load()
+}
+async function deletarProduto(id){
+ let p=produtos.find(x=>x.id===id);if(!p)return;
+ if(!confirm(`EXCLUIR o cadastro do produto ${p.codigo} - ${p.descricao}?\n\nSe houver vínculos com pedidos, cargas, estoque ou histórico, o banco poderá impedir a exclusão.`))return;
+ let {error}=await sb.from('itens_carga').delete().eq('id',id);
+ if(error)return toast('Não foi possível excluir: '+error.message);
+ prodSelecionados.delete(id);toast('Produto excluído');await load()
+}
+async function deletarMP(id){
+ let m=mps.find(x=>x.id===id);if(!m)return;
+ if(!confirm(`EXCLUIR a matéria-prima ${m.codigo} - ${m.descricao}?\n\nSe houver estoque, vínculo com produtos ou histórico, o banco poderá impedir a exclusão.`))return;
+ let {error}=await sb.from('materias_primas').delete().eq('id',id);
+ if(error)return toast('Não foi possível excluir: '+error.message);
+ toast('Matéria-prima excluída');await load()
+}
+async function editarProdutoCompleto(id){
+ let p=produtos.find(x=>x.id===id);if(!p)return;
+ let codigo=prompt('Código do produto:',p.codigo);if(codigo===null)return;codigo=codigo.trim();if(!codigo)return toast('Código obrigatório');
+ let descricao=prompt('Descrição do produto:',p.descricao);if(descricao===null)return;descricao=descricao.trim();if(!descricao)return toast('Descrição obrigatória');
+ let familia=prompt('Família do produto:',p.familia||'');if(familia===null)return;
+ let peso=prompt('Peso unitário (kg):',p.peso_unitario??0);if(peso===null)return;
+ let {error}=await sb.from('itens_carga').update({codigo,descricao,familia:familia.trim()||null,peso_unitario:N(peso)}).eq('id',id);
+ if(error)return toast(error.message);toast('Produto atualizado');await load()
+}
+async function editarFamiliaProduto(id){let p=produtos.find(x=>x.id===id);if(!p)return;let f=prompt('Família do produto:',p.familia||'');if(f===null)return;let {error}=await sb.from('itens_carga').update({familia:f.trim()||null}).eq('id',id);if(error)return toast(error.message);toast('Família atualizada');await load()}
+function renderEstoquePP(){if(!$('ppLista'))return;renderFiltrosFamilia();let busca=($('ppBusca')?.value||'').trim().toLowerCase(),fam=$('ppFamilia')?.value||'',pm=new Map(produtos.map(x=>[x.id,x])),lm=new Map(locais.map(x=>[x.id,x.nome])),em=new Map(ends.map(x=>[x.id,x.codigo]));let a=pp.filter(x=>{let p=pm.get(x.produto_id);return (!busca||String(p?.codigo||'').toLowerCase().includes(busca)||String(p?.descricao||'').toLowerCase().includes(busca))&&(!fam||p?.familia===fam)});$('ppLista').innerHTML=a.map(x=>{let p=pm.get(x.produto_id),d=N(x.quantidade)-N(x.reservado)-N(x.bloqueado);return `<tr><td>${E(p?.codigo)}</td><td>${E(p?.descricao)}</td><td>${E(p?.familia||'')}</td><td>${E(lm.get(x.local_id))}</td><td><b>${E(em.get(x.endereco_wms_id)||'Sem posição')}</b></td><td>${E(x.lote)}</td><td>${F(x.quantidade)}</td><td>${F(x.reservado)}</td><td><b>${F(d)}</b></td><td><button class="sec" onclick="corrigirRegistroPP(${x.id})">Corrigir</button></td></tr>`}).join('');let fis=a.reduce((z,x)=>z+N(x.quantidade),0),disp=a.reduce((z,x)=>z+N(x.quantidade)-N(x.reservado)-N(x.bloqueado),0);$('ppResumoFiltro').innerHTML=`Registros: <b>${a.length}</b> · Físico: <b>${F(fis)}</b> · Disponível: <b>${F(disp)}</b>`}
+
+async function corrigirRegistroPP(id){
+  let r=pp.find(x=>x.id===id);if(!r)return toast('Registro não encontrado');
+  let atual=produtos.find(x=>x.id===r.produto_id),endAtual=ends.find(x=>x.id===r.endereco_wms_id);
+  let cod=prompt('Código correto do produto:',atual?.codigo||'');if(cod===null)return;
+  let novo=produtos.find(x=>String(x.codigo).trim().toLowerCase()===cod.trim().toLowerCase());
+  if(!novo)return toast('Produto não encontrado');
+  let pos=prompt('Posição WMS correta:',endAtual?.codigo||'');if(pos===null)return;
+  let novoEnd=ends.find(x=>String(x.codigo).trim().toLowerCase()===pos.trim().toLowerCase()&&x.ativo!==false);
+  if(!novoEnd)return toast('Posição WMS não encontrada');
+  let lote=prompt('Lote correto:',r.lote||'');if(lote===null)return;
+  let motivo=prompt('Motivo da correção cadastral:','');if(motivo===null||!motivo.trim())return toast('Informe o motivo da correção');
+  let resumo=`Quantidade preservada: ${F(r.quantidade)}\n\nProduto: ${atual?.codigo||''} → ${novo.codigo}\nPosição: ${endAtual?.codigo||'Sem posição'} → ${novoEnd.codigo}\nLote: ${r.lote||''} → ${lote||''}\n\nConfirmar correção cadastral?`;
+  if(!confirm(resumo))return;
+  let {error}=await sb.rpc('corrigir_estoque_wms',{p_tipo_estoque:'PRODUTO_PRONTO',p_estoque_id:id,p_item_novo_id:novo.id,p_endereco_novo_id:novoEnd.id,p_lote_novo:lote||null,p_motivo:motivo.trim()});
+  if(error)return toast(error.message);
+  toast('Correção cadastral realizada');
+  await load();
+}
+
+async function corrigirRegistroMP(id){
+  let r=emp.find(x=>x.id===id);if(!r)return toast('Registro não encontrado');
+  let atual=mps.find(x=>x.id===r.materia_prima_id),endAtual=ends.find(x=>x.id===r.endereco_wms_id);
+  let cod=prompt('Código correto da matéria-prima:',atual?.codigo||'');if(cod===null)return;
+  let novo=mps.find(x=>String(x.codigo).trim().toLowerCase()===cod.trim().toLowerCase());
+  if(!novo)return toast('Matéria-prima não encontrada');
+  let pos=prompt('Posição WMS correta:',endAtual?.codigo||'');if(pos===null)return;
+  let novoEnd=ends.find(x=>String(x.codigo).trim().toLowerCase()===pos.trim().toLowerCase()&&x.ativo!==false);
+  if(!novoEnd)return toast('Posição WMS não encontrada');
+  let lote=prompt('Lote correto:',r.lote||'');if(lote===null)return;
+  let motivo=prompt('Motivo da correção cadastral:','');if(motivo===null||!motivo.trim())return toast('Informe o motivo da correção');
+  let resumo=`Quantidade preservada: ${F(r.quantidade)}\n\nMP: ${atual?.codigo||''} → ${novo.codigo}\nPosição: ${endAtual?.codigo||'Sem posição'} → ${novoEnd.codigo}\nLote: ${r.lote||''} → ${lote||''}\n\nConfirmar correção cadastral?`;
+  if(!confirm(resumo))return;
+  let {error}=await sb.rpc('corrigir_estoque_wms',{p_tipo_estoque:'MATERIA_PRIMA',p_estoque_id:id,p_item_novo_id:novo.id,p_endereco_novo_id:novoEnd.id,p_lote_novo:lote||null,p_motivo:motivo.trim()});
+  if(error)return toast(error.message);
+  toast('Correção cadastral realizada');
+  await load();
+}
+function nomeItemCorrecao(tipo,id){
+  let a=tipo==='PRODUTO_PRONTO'?produtos.find(x=>x.id===id):mps.find(x=>x.id===id);
+  return a?`${a.codigo} · ${a.descricao}`:`ID ${id||''}`;
+}
+function renderCorrecoes(){
+  if(!$('corrLista'))return;
+  let em=new Map(ends.map(x=>[x.id,x.codigo]));
+  let a=[...correcoes].sort((x,y)=>String(y.criado_em||'').localeCompare(String(x.criado_em||'')));
+  $('corrLista').innerHTML=a.slice(0,100).map(x=>`<tr><td>${E((x.criado_em||'').slice(0,16).replace('T',' '))}</td><td>${E(x.tipo_estoque)}</td><td>${E(nomeItemCorrecao(x.tipo_estoque,x.item_anterior_id))}</td><td>${E(nomeItemCorrecao(x.tipo_estoque,x.item_novo_id))}</td><td>${E(em.get(x.endereco_anterior_id)||'')}</td><td>${E(em.get(x.endereco_novo_id)||'')}</td><td>${E(x.lote_anterior)}</td><td>${E(x.lote_novo)}</td><td>${F(x.quantidade)}</td><td>${E(x.motivo)}</td></tr>`).join('');
+}
+function conteudoPosicao(id){let out=[],pm=new Map(produtos.map(x=>[x.id,x])),mm=new Map(mps.map(x=>[x.id,x]));pp.filter(x=>x.endereco_wms_id===id&&N(x.quantidade)>0).forEach(x=>{let p=pm.get(x.produto_id);out.push({tipo:'PP',codigo:p?.codigo||'',descricao:p?.descricao||'',familia:p?.familia||'',lote:x.lote||'',qtd:N(x.quantidade)})});emp.filter(x=>x.endereco_wms_id===id&&N(x.quantidade)>0).forEach(x=>{let m=mm.get(x.materia_prima_id);out.push({tipo:'MP',codigo:m?.codigo||'',descricao:m?.descricao||'',familia:'',lote:x.lote||'',qtd:N(x.quantidade)})});return out}
+let wEstoqueAtual='PP';
+function trocarLocalWms(tipo){
+ wEstoqueAtual=tipo;
+ ['PP','MP','PA'].forEach(t=>{let b=$('wEst'+t);if(b)b.classList.toggle('on',t===tipo)});
+ document.querySelectorAll('#wms .wmsPP').forEach(e=>e.style.display=tipo==='PP'?'':'none');
+ if($('wmsMP'))$('wmsMP').style.display=tipo==='MP'?'':'none';
+ if($('wmsPA'))$('wmsPA').style.display=tipo==='PA'?'':'none';
+ if(tipo==='PP'){renderWms();return}
+ renderLocalWms(tipo)
+}
+function trocarEstoqueWms(tipo){trocarLocalWms(tipo)}
+function abrirPainelLocal(tipo,painel,btn){
+ let k=tipo.toLowerCase();
+ ['Mapa','Lote','Inv'].forEach(n=>{let e=$(`${k}Painel${n}`);if(e)e.style.display=(n.toLowerCase()===painel)?'':'none'});
+ let nav=btn?.parentElement;if(nav)nav.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===btn));
+ if(painel==='mapa')renderMapaLocal(tipo);
+ if(painel==='lote')renderLoteLocal(tipo);
+ if(painel==='inv')renderInventarioLocal(tipo)
+}
+function renderLoteLocal(tipo){
+ let k=tipo.toLowerCase(),e=$(`${k}PainelLote`);if(!e)return;
+ e.innerHTML=`<div class="box"><h3>Cadastro em Lote · ${tipo}</h3><div class="form">
+ <div><label>Coluna inicial</label><input id="${k}LCi" type="number" min="1"></div><div><label>Coluna final</label><input id="${k}LCf" type="number" min="1"></div>
+ <div><label>Andar inicial</label><input id="${k}LAi" type="number" min="1"></div><div><label>Andar final</label><input id="${k}LAf" type="number" min="1"></div>
+ <div><label>Posição inicial</label><input id="${k}LPi" type="number" min="1"></div><div><label>Posição final</label><input id="${k}LPf" type="number" min="1"></div>
+ <div><label>Capacidade</label><input id="${k}LCap" type="number"></div></div>
+ <div class="actions"><button class="pri" onclick="gerarLoteLocal('${tipo}')">Gerar posições ${tipo}</button></div></div>`
+}
+async function gerarLoteLocal(tipo){
+ let k=tipo.toLowerCase(),ci=N($(`${k}LCi`)?.value),cf=N($(`${k}LCf`)?.value),ai=N($(`${k}LAi`)?.value),af=N($(`${k}LAf`)?.value),pi=N($(`${k}LPi`)?.value),pf=N($(`${k}LPf`)?.value),cap=N($(`${k}LCap`)?.value);
+ if(!ci||!cf||!ai||!af||!pi||!pf||cf<ci||af<ai||pf<pi)return toast('Confira os intervalos do cadastro em lote');
+ let total=(cf-ci+1)*(af-ai+1)*(pf-pi+1);if(total>1000)return toast('Máximo de 1000 posições por lote');
+ let local=await obterLocalWms(tipo);if(!local)return;
+ let existentes=new Set(ends.map(x=>String(x.codigo).toUpperCase())),rows=[];
+ for(let c=ci;c<=cf;c++)for(let a=ai;a<=af;a++)for(let p=pi;p<=pf;p++){let codigo=`${tipo}-${c}-${a}-${p}`;if(!existentes.has(codigo))rows.push({local_id:local.id,codigo,modulo:String(c),nivel:String(a),posicao:String(p),capacidade:cap,status:'LIVRE',ativo:true,rua:null})}
+ if(!rows.length)return toast('Todas as posições já existem');
+ let {error}=await sb.from('enderecos_wms').insert(rows);if(error)return toast(error.message);
+ toast(`${rows.length} posição(ões) ${tipo} criada(s)`);await load();trocarLocalWms(tipo);let nav=document.querySelector(`.localWmsNav[data-local="${tipo}"] button`);abrirPainelLocal(tipo,'mapa',nav)
+}
+function renderInventarioLocal(tipo){
+ let k=tipo.toLowerCase(),e=$(`${k}PainelInv`);if(!e)return;
+ let local=locais.find(x=>(x.codigo||'').toUpperCase()===tipo),pos=ends.filter(x=>local&&x.local_id===local.id);
+ let rows=[];
+ if(tipo==='MP'){
+   rows=emp.filter(x=>local&&x.local_id===local.id).map(x=>{let m=mps.find(z=>N(z.id)===N(x.materia_prima_id)),p=ends.find(z=>N(z.id)===N(x.endereco_wms_id));return {codigo:m?.codigo||'',desc:m?.descricao||'',pos:p?.codigo||'',lote:x.lote||'',q:N(x.quantidade)}})
+ }else if(tipo==='PA'){
+   rows=(epa||[]).filter(x=>local&&x.local_id===local.id).map(x=>{let pdt=produtos.find(z=>N(z.id)===N(x.produto_id)),p=ends.find(z=>N(z.id)===N(x.endereco_wms_id));return {codigo:pdt?.codigo||'',desc:pdt?.descricao||'',pos:p?.codigo||'',lote:x.lote||'',q:N(x.quantidade)}})
+ }
+ e.innerHTML=`<div class="box"><h3>Inventário WMS · ${tipo}</h3><p class="muted">Posições cadastradas: <b>${pos.length}</b> · Registros com saldo: <b>${rows.filter(x=>x.q!==0).length}</b>.</p>
+ <div class="tw"><table><thead><tr><th>Código</th><th>Descrição</th><th>Posição</th><th>Lote</th><th>Quantidade</th></tr></thead><tbody>${rows.filter(x=>x.q!==0).map(x=>`<tr><td>${E(x.codigo)}</td><td>${E(x.desc)}</td><td>${E(x.pos)}</td><td>${E(x.lote)}</td><td>${F(x.q)}</td></tr>`).join('')||'<tr><td colspan="5">Nenhum saldo neste local.</td></tr>'}</tbody></table></div></div>`
+}
+function renderLocalWms(tipo){renderMapaLocal(tipo)}
+function gerarCodigoLocal(tipo){
+ let k=tipo.toLowerCase(),c=$(`${k}WCol`)?.value,a=$(`${k}WAnd`)?.value,p=$(`${k}WPos`)?.value;
+ if($(`${k}WCod`))$(`${k}WCod`).value=(c&&a&&p)?`${tipo}-${c}-${a}-${p}`:''
+}
+async function obterLocalWms(tipo){
+ let l=locais.find(x=>(x.codigo||'').toUpperCase()===tipo);
+ if(l)return l;
+ let nome=tipo==='MP'?'Matéria-Prima':'Pátio';
+ let {data,error}=await sb.from('locais_estoque').insert({codigo:tipo,nome,tipo,ativo:true}).select().single();
+ if(error){toast(error.message);return null}
+ locais.push(data);return data
+}
+async function salvarPosicaoLocal(tipo){
+ let k=tipo.toLowerCase(),col=N($(`${k}WCol`)?.value),and=N($(`${k}WAnd`)?.value),pos=N($(`${k}WPos`)?.value),cap=N($(`${k}WCap`)?.value);
+ if(!col||!and||!pos)return toast('Informe Coluna, Andar e Posição');
+ let local=await obterLocalWms(tipo);if(!local)return;
+ let codigo=`${tipo}-${col}-${and}-${pos}`;
+ let {error}=await sb.from('enderecos_wms').insert({local_id:local.id,codigo,modulo:String(col),nivel:String(and),posicao:String(pos),capacidade:cap,status:'LIVRE',ativo:true,rua:null});
+ if(error)return toast(error.message);
+ toast(`Posição ${codigo} criada`);await load();trocarLocalWms(tipo)
+}
+function renderMapaLocal(tipo){
+ let k=tipo.toLowerCase(),local=locais.find(x=>(x.codigo||'').toUpperCase()===tipo),busca=($(`${k}WBusca`)?.value||'').trim().toLowerCase();
+ let a=ends.filter(x=>local&&x.local_id===local.id);
+ if(busca)a=a.filter(x=>(String(x.codigo||'')+' '+String(x.descricao||'')).toLowerCase().includes(busca));
+ let el=$(`${k}WMapa`);if(!el)return;
+ el.innerHTML=a.map(x=>`<div class="slot ${E(x.status)}"><b>${E(x.codigo)}</b><br><span class="muted">Coluna ${E(x.modulo)} · Andar ${E(x.nivel)} · Posição ${E(x.posicao)}</span><br>${E(x.status)}</div>`).join('')||'<div class="muted">Nenhuma posição cadastrada.</div>'
+}
+function renderEstruturaEstoque(tipo){
+ let box=$('wEstoqueSimples');if(!box)return;
+ if(tipo==='MP'){
+   let rows=mps.map(m=>{let regs=emp.filter(e=>e.materia_prima_id===m.id),q=regs.reduce((a,e)=>a+N(e.quantidade),0),obs=regs.map(e=>e.lote).filter(Boolean).join(', ');
+     return `<tr><td>${E(m.codigo)}</td><td>${E(m.descricao)}</td><td>${E(m.unidade||'')}</td><td>${F(q)}</td><td>${E(obs)}</td></tr>`}).join('');
+   box.innerHTML=`<h3>MP · Matéria-Prima</h3>
+   <p class="muted">Estrutura de estoque de Matéria-Prima.</p>
+   <div class="form"><div><label>Código MP</label><input id="wMpCod" placeholder="Código"></div><div><label>Quantidade</label><input id="wMpQtd" type="number"></div><div><label>Lote / Observação</label><input id="wMpObs"></div></div>
+   <div class="actions"><button class="pri" onclick="entradaMpWms()">Adicionar ao estoque MP</button></div>
+   <div class="tw" style="margin-top:14px"><table><thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th>Quantidade</th><th>Lote / Observação</th></tr></thead><tbody>${rows||'<tr><td colspan="5">Nenhuma matéria-prima em estoque.</td></tr>'}</tbody></table></div>`;
+   return
+ }
+ if(tipo==='PA'){
+   let dados=[];try{dados=JSON.parse(localStorage.getItem('extraplast_estoque_pa')||'[]')}catch(e){}
+   let rows=dados.map((x,i)=>`<tr><td>${E(x.codigo||'')}</td><td>${E(x.descricao||'')}</td><td>${F(x.quantidade)}</td><td>${E(x.observacao||'')}</td><td><button class="danger" onclick="excluirItemPA(${i})">Excluir</button></td></tr>`).join('');
+   box.innerHTML=`<h3>PA · Pátio</h3>
+   <p class="muted">Estrutura de estoque do Pátio.</p>
+   <div class="form"><div><label>Código / Nomenclatura</label><input id="wPaCod"></div><div><label>Descrição</label><input id="wPaDesc"></div><div><label>Quantidade</label><input id="wPaQtd" type="number"></div><div><label>Observação</label><input id="wPaObs"></div></div>
+   <div class="actions"><button class="pri" onclick="adicionarItemPA()">Adicionar ao estoque PA</button></div>
+   <div class="tw" style="margin-top:14px"><table><thead><tr><th>Código</th><th>Descrição</th><th>Quantidade</th><th>Observação</th><th>Ação</th></tr></thead><tbody>${rows||'<tr><td colspan="5">Nenhum item cadastrado no Pátio.</td></tr>'}</tbody></table></div>`
+ }
+}
+async function entradaMpWms(){
+ let cod=($('wMpCod')?.value||'').trim(),q=N($('wMpQtd')?.value),obs=($('wMpObs')?.value||'').trim();
+ let m=mps.find(x=>String(x.codigo).toLowerCase()===cod.toLowerCase());
+ if(!m)return toast('Matéria-prima não encontrada');
+ if(q<=0)return toast('Informe uma quantidade válida');
+ let l=locais.find(x=>(x.codigo||'').toUpperCase()==='MP'||(x.tipo||'').toUpperCase()==='MATERIA_PRIMA');
+ let {error}=await sb.from('estoque_mp').insert({materia_prima_id:m.id,local_id:l?.id||null,quantidade:q,lote:obs});
+ if(error)return toast(error.message);
+ await sb.from('movimentacoes_estoque').insert({tipo_estoque:'MATERIA_PRIMA',item_id:m.id,tipo_movimento:'ENTRADA',quantidade:q,local_destino_id:l?.id||null,lote:obs});
+ toast('Entrada MP registrada');await load();trocarEstoqueWms('MP')
+}
+function adicionarItemPA(){
+ let o={codigo:($('wPaCod')?.value||'').trim(),descricao:($('wPaDesc')?.value||'').trim(),quantidade:N($('wPaQtd')?.value),observacao:($('wPaObs')?.value||'').trim()};
+ if(!o.codigo&&!o.descricao)return toast('Informe código ou descrição');
+ let k='extraplast_estoque_pa',a=[];try{a=JSON.parse(localStorage.getItem(k)||'[]')}catch(e){}
+ a.push(o);localStorage.setItem(k,JSON.stringify(a));toast('Item adicionado ao Pátio');renderEstruturaEstoque('PA')
+}
+function excluirItemPA(i){if(!confirm('Excluir este item do estoque PA?'))return;let k='extraplast_estoque_pa',a=[];try{a=JSON.parse(localStorage.getItem(k)||'[]')}catch(e){}a.splice(i,1);localStorage.setItem(k,JSON.stringify(a));renderEstruturaEstoque('PA')}
+function renderWms(){let ppLoc=locais.find(x=>(x.codigo||'').toUpperCase()==='PP'||(x.tipo||'').toUpperCase()==='PP'),id=ppLoc?.id||0,busca=($('wBusca')?.value||'').trim().toLowerCase(),fam=$('wFamilia')?.value||'',a=ends.filter(x=>id&&x.local_id===id);if(busca||fam)a=a.filter(x=>conteudoPosicao(x.id).some(c=>(!busca||(c.codigo+' '+c.descricao).toLowerCase().includes(busca))&&(!fam||c.familia===fam)));setHTML('wBuscaResumo',(busca||fam)?`Posições encontradas: <b>${a.length}</b>`:'');setHTML('wMapa',a.map(x=>{let cs=conteudoPosicao(x.id),html=cs.length?cs.map(c=>`<div style="margin-top:7px;border-top:1px solid #ddd;padding-top:6px"><b>${E(c.codigo)}</b> · ${E(c.descricao)}<br><span class="muted">Lote ${E(c.lote)} · Qtd ${F(c.qtd)}</span></div>`).join(''):'<div class="muted" style="margin-top:7px">Sem estoque armazenado</div>';return `<div class="slot ${E(x.status)}"><b>${E(x.codigo)}</b><br><span class="muted">Coluna ${E(x.modulo)} · Andar ${E(x.nivel)} · Posição ${E(x.posicao)}</span><br>${E(x.status)}${html}</div>`}).join(''))}
+async function salvarMP(){let o={codigo:$('mpCod').value.trim(),descricao:$('mpDesc').value.trim(),unidade:$('mpUn').value,peso_padrao:N($('mpPeso').value),largura:N($('mpLar').value),comprimento:N($('mpComp').value),espessura:N($('mpEsp').value)};let z=await sb.from('materias_primas').insert(o);if(z.error)return toast(z.error.message);toast('MP cadastrada');load()}async function salvarVinc(){
+ let o={materia_prima_id:N($('vMp').value),produto_id:N($('vProd').value),consumo_por_unidade:N($('vCons').value),perda_percentual:N($('vPerda').value)};
+ if(!o.materia_prima_id||!o.produto_id)return toast('Selecione a matéria-prima e o produto');
+ let id=N($('vincEditId').value),z;
+ if(id)z=await sb.from('mp_produtos').update(o).eq('id',id);
+ else z=await sb.from('mp_produtos').insert(o);
+ if(z.error)return toast(z.error.message);
+ toast(id?'Vínculo atualizado':'Vínculo criado');
+ cancelarEdicaoVinc();
+ await load()
+}
+function editarVinc(id){
+ let v=vincs.find(x=>x.id===id);if(!v)return toast('Vínculo não encontrado');
+ $('vincEditId').value=v.id;$('vMp').value=v.materia_prima_id;$('vProd').value=v.produto_id;
+ $('vCons').value=v.consumo_por_unidade??0;$('vPerda').value=v.perda_percentual??0;
+ $('btnVinc').textContent='Salvar Alteração';$('btnCancVinc').style.display='inline-block';
+ $('vMp').scrollIntoView({behavior:'smooth',block:'center'})
+}
+function cancelarEdicaoVinc(){
+ if(!$('vincEditId'))return;
+ $('vincEditId').value='';$('vMp').value='';$('vProd').value='';$('vCons').value='';$('vPerda').value='';
+ $('btnVinc').textContent='Vincular';$('btnCancVinc').style.display='none'
+}
+async function excluirVinc(id){
+ let v=vincs.find(x=>x.id===id);if(!v)return;
+ let m=mps.find(x=>x.id===v.materia_prima_id),p=produtos.find(x=>x.id===v.produto_id);
+ if(!confirm(`Excluir o vínculo?\n\nMP: ${m?.codigo||''}\nProduto: ${p?.codigo||''} · ${p?.descricao||''}`))return;
+ let {error}=await sb.from('mp_produtos').delete().eq('id',id);
+ if(error)return toast(error.message);
+ if(N($('vincEditId').value)===id)cancelarEdicaoVinc();
+ toast('Vínculo excluído');await load()
+}
+async function entradaPP(){let c=prompt('Código do produto:');if(!c)return;let p=produtos.find(x=>x.codigo===c);if(!p)return toast('Produto não encontrado');let q=N(prompt('Quantidade:')),l=locais.find(x=>x.tipo==='PRODUTO_PRONTO'),lot=prompt('Lote:')||'';let z=await sb.from('estoque_produto_pronto').insert({produto_id:p.id,local_id:l?.id||null,quantidade:q,lote:lot});if(z.error)return toast(z.error.message);await sb.from('movimentacoes_estoque').insert({tipo_estoque:'PRODUTO_PRONTO',item_id:p.id,tipo_movimento:'ENTRADA',quantidade:q,local_destino_id:l?.id||null,lote:lot});load()}async function entradaMP(){let c=prompt('Código da MP:');if(!c)return;let m=mps.find(x=>x.codigo===c);if(!m)return toast('MP não encontrada');let q=N(prompt('Quantidade:')),l=locais.find(x=>x.tipo==='MATERIA_PRIMA'),lot=prompt('Lote:')||'';let z=await sb.from('estoque_mp').insert({materia_prima_id:m.id,local_id:l?.id||null,quantidade:q,lote:lot});if(z.error)return toast(z.error.message);await sb.from('movimentacoes_estoque').insert({tipo_estoque:'MATERIA_PRIMA',item_id:m.id,tipo_movimento:'ENTRADA',quantidade:q,local_destino_id:l?.id||null,lote:lot});load()}
+function renderWmsNovo(){if(!$('wMapa'))return;let lm=new Map(locais.map(x=>[x.id,x.nome]));$('wMapa').innerHTML=ends.map(x=>`<div class="slot ${E(x.status)}"><b>${E(x.codigo)}</b><br><span class="muted">${E(lm.get(x.local_id))}<br>${E(x.setor||'Detalhamento pendente')}</span></div>`).join('')}
+function gerarCodigoPP(){let c=N($('wCol')?.value),a=N($('wAnd')?.value),p=N($('wPos')?.value);if($('wCod'))$('wCod').value=(c&&a&&p)?`PP-${c}-${a}-${p}`:''}
+async function obterLocalPP(){
+ let l=locais.find(x=>(x.codigo||'').toUpperCase()==='PP'||(x.tipo||'').toUpperCase()==='PP');
+ if(l)return l;
+ let {data,error}=await sb.from('locais_estoque').insert({codigo:'PP',nome:'Produto Pronto',tipo:'PP',ativo:true}).select().single();
+ if(error){toast('Não foi possível localizar/criar o estoque PP: '+error.message);return null}
+ locais.push(data);return data
+}
+async function salvarPosicao(){
+ let local=await obterLocalPP();if(!local)return;
+ let col=N($('wCol').value),andar=N($('wAnd').value),pos=N($('wPos').value),codigo=$('wCod').value.trim();
+ if(!col||!andar||!pos||!codigo)return toast('Informe Coluna, Andar e Posição');
+ let o={local_id:local.id,codigo,rua:null,modulo:String(col),nivel:String(andar),posicao:String(pos),capacidade:N($('wCap').value),status:'LIVRE',ativo:true};
+ let {error}=await sb.from('enderecos_wms').insert(o);if(error)return toast(error.message);
+ toast('Posição '+codigo+' criada');await load();$('wCol').value='';$('wAnd').value='';$('wPos').value='';$('wCod').value=''
+}
+function montarLotePP(){
+ let ci=N($('gColIni').value),cf=N($('gColFim').value),ai=N($('gAndIni').value),af=N($('gAndFim').value),pi=N($('gPosIni').value),pf=N($('gPosFim').value);
+ if(!ci||!cf||!ai||!af||!pi||!pf||cf<ci||af<ai||pf<pi)return [];
+ let a=[];for(let c=ci;c<=cf;c++)for(let n=ai;n<=af;n++)for(let p=pi;p<=pf;p++)a.push({col:c,andar:n,pos:p,codigo:`PP-${c}-${n}-${p}`});return a
+}
+function previewLotePP(){
+ let a=montarLotePP();if(!a.length)return setHTML('gPreview','Confira os intervalos informados.');
+ let amostra=a.slice(0,12).map(x=>x.codigo).join(', ')+(a.length>12?' ...':'');
+ setHTML('gPreview',`Serão criadas <b>${a.length}</b> posições.<br>${E(amostra)}`);
+}
+async function gerarPosicoes(){
+ let local=await obterLocalPP();if(!local)return;
+ let a=montarLotePP();if(!a.length)return toast('Confira Coluna, Andar e Posição');
+ if(a.length>1000)return toast('Limite de 1.000 posições por operação');
+ let existentes=new Set(ends.map(x=>(x.codigo||'').toUpperCase()));
+ let novos=a.filter(x=>!existentes.has(x.codigo.toUpperCase()));
+ if(!novos.length)return toast('Todas essas posições já existem');
+ let cap=N($('gCap').value);
+ let rows=novos.map(x=>({local_id:local.id,codigo:x.codigo,rua:null,modulo:String(x.col),nivel:String(x.andar),posicao:String(x.pos),capacidade:cap,status:'LIVRE',ativo:true}));
+ let {error}=await sb.from('enderecos_wms').insert(rows);if(error)return toast(error.message);
+ toast(`${rows.length} posições criadas${rows.length<a.length?` · ${a.length-rows.length} já existiam`:''}`);await load();previewLotePP()
+}
+
+function renderInventarioSelector(){
+  let sel=$('invSel'); if(!sel)return;
+  let abertas=inventarios.filter(x=>x.status==='ABERTO');
+  let atual=inventarioAtivoId||N(sel.value);
+  if(!abertas.some(x=>x.id===atual)) atual=abertas.length?abertas[0].id:0;
+  inventarioAtivoId=atual;
+  sel.innerHTML='<option value="">Selecione...</option>'+abertas.map(x=>`<option value="${x.id}" ${x.id===atual?'selected':''}>${E(x.codigo)} · ${E(x.descricao||'')}</option>`).join('');
+  atualizarEstadoInventario();
+}
+function selecionarInventario(){
+  inventarioAtivoId=N($('invSel').value);
+  atualizarEstadoInventario();
+  listarContagens();
+}
+function atualizarEstadoInventario(){
+  let inv=inventarios.find(x=>x.id===inventarioAtivoId);
+  let aberto=!!inv&&inv.status==='ABERTO';
+  if($('btnRegistrarContagem')) $('btnRegistrarContagem').disabled=!aberto;
+}
+async function criarInventario(){let codigo=$('invCod').value.trim();if(!codigo)return toast('Informe o código');let {data,error}=await sb.from('inventarios_wms').insert({codigo,descricao:$('invDesc').value,status:'ABERTO'}).select().single();if(error)return toast(error.message);inventarioAtivoId=data.id;toast('Inventário criado');load()}
+function preencherInvItens(){if(!$('invItem'))return;if($('invTipo').value==='MATERIA_PRIMA')$('invItem').innerHTML=opt(mps,'id','descricao');else $('invItem').innerHTML='<option value="">Selecione...</option>'+produtos.map(x=>`<option value="${x.id}">${E(x.codigo+' · '+x.descricao)}</option>`).join('')}
+async function registrarContagem(){let iid=inventarioAtivoId||N($('invSel').value),inv=inventarios.find(x=>x.id===iid);if(!inv||inv.status!=='ABERTO')return toast('Selecione uma sessão de inventário aberta');inventarioAtivoId=iid;let o={inventario_id:iid,endereco_wms_id:N($('invEnd').value),tipo_estoque:$('invTipo').value,item_id:N($('invItem').value),lote:$('invLote').value||null,quantidade_contada:N($('invQtd').value),observacao:$('invObs').value||null};if(!o.endereco_wms_id||!o.item_id)return toast('Selecione posição e item');let {error}=await sb.from('inventario_wms_itens').insert(o);if(error)return toast(error.message);toast('Contagem registrada');load()}
+function saldoContagem(x){
+  let lista=x.tipo_estoque==='MATERIA_PRIMA'?emp:pp;
+  return lista.filter(y=>{
+    let itemOk=x.tipo_estoque==='MATERIA_PRIMA'?y.materia_prima_id===x.item_id:y.produto_id===x.item_id;
+    return itemOk && y.endereco_wms_id===x.endereco_wms_id && String(y.lote||'')===String(x.lote||'');
+  }).reduce((a,y)=>a+N(y.quantidade),0);
+}
+function listarContagens(){
+  if(!$('invLista'))return;
+  let iid=inventarioAtivoId||N($('invSel')?.value),em=new Map(ends.map(x=>[x.id,x.codigo])),pm=new Map(produtos.map(x=>[x.id,x])),mm=new Map(mps.map(x=>[x.id,x]));
+  let a=iid?contagens.filter(x=>x.inventario_id===iid):[];
+  $('invLista').innerHTML=a.map(x=>{
+    let it=x.tipo_estoque==='MATERIA_PRIMA'?mm.get(x.item_id):pm.get(x.item_id);
+    let sis=x.status==='APROVADO'&&x.quantidade_sistema!=null?N(x.quantidade_sistema):saldoContagem(x);
+    let dif=x.status==='APROVADO'&&x.diferenca!=null?N(x.diferenca):N(x.quantidade_contada)-sis;
+    let st=x.status||'PENDENTE';
+    let acao=st==='APROVADO'?'<span class="badge g">Aprovado</span>':`<button class="pri" onclick="aprovarContagem(${x.id})">Aprovar Ajuste</button>`;
+    return `<tr><td>${E(em.get(x.endereco_wms_id))}</td><td>${E(x.tipo_estoque)}</td><td>${E(it?.codigo)} · ${E(it?.descricao)}</td><td>${E(x.lote)}</td><td>${F(sis)}</td><td>${F(x.quantidade_contada)}</td><td><b>${dif>0?'+':''}${F(dif)}</b></td><td><span class="badge ${st==='APROVADO'?'g':'a'}">${E(st)}</span></td><td>${acao}</td></tr>`
+  }).join('');
+}
+async function aprovarContagem(id){
+  if(!confirm('Aprovar esta contagem e ajustar o estoque oficial?'))return;
+  let {data,error}=await sb.rpc('aprovar_contagem_wms',{p_contagem_id:id});
+  if(error)return toast(error.message);
+  toast('Ajuste aprovado. Estoque oficial atualizado.');
+  await load();
+}
+async function finalizarInventario(){
+  let id=inventarioAtivoId||N($('invSel').value);
+  if(!id)return toast('Selecione uma sessão de inventário');
+  inventarioAtivoId=id;
+  if(!confirm('Finalizar este inventário? Após finalizar, ele não aceitará novas aprovações.'))return;
+  let {data,error}=await sb.rpc('finalizar_inventario_wms',{p_inventario_id:id});
+  if(error)return toast(error.message);
+  toast('Inventário finalizado');
+  inventarioAtivoId=0;
+  await load();
+}
+function preencherMovItens(){if(!$('movProdutosLista'))return;let arr=$('movTipo').value==='MATERIA_PRIMA'?mps:produtos;$('movProdutosLista').innerHTML=arr.filter(x=>x.ativo!==false).map(x=>`<option value="${E(x.codigo)} · ${E(x.descricao)}"></option>`).join('');if($('movItem'))$('movItem').value='';if($('movItemBusca'))$('movItemBusca').value=''}
+function resolverMovItem(){let txt=($('movItemBusca')?.value||'').trim().toLowerCase(),arr=$('movTipo').value==='MATERIA_PRIMA'?mps:produtos,x=arr.find(x=>(String(x.codigo||'')+' · '+String(x.descricao||'')).toLowerCase()===txt)||arr.find(x=>String(x.codigo||'').toLowerCase()===txt);if($('movItem'))$('movItem').value=x?.id||''}
+function localCodigoPorTipo(tipo){return tipo==='MATERIA_PRIMA'?'MP':'PP'}
+function preencherMovEnderecos(){
+ if(!$('movEnd'))return;
+ let cod=localCodigoPorTipo($('movTipo').value),l=locais.find(x=>(x.codigo||'').toUpperCase()===cod);
+ let a=ends.filter(x=>x.ativo!==false&&(!l||x.local_id===l.id));
+ let opts='<option value="">Selecione...</option>'+a.map(x=>`<option value="${x.id}">${E(x.codigo)}</option>`).join('');
+ $('movEnd').innerHTML=opts;if($('movEndDestino'))$('movEndDestino').innerHTML=opts
+}
+function ajustarMovOper(){
+ let tr=$('movOper')?.value==='TRANSFERENCIA';
+ if($('movEndDestinoLabel'))$('movEndDestinoLabel').style.display=tr?'':'none';
+ if($('movEndLabel'))$('movEndLabel').firstChild.textContent=tr?'Posição origem':'Posição WMS'
+}
+async function executarMovWms(){
+ let tipo=$('movTipo').value,item=N($('movItem').value),orig=N($('movEnd').value),dest=N($('movEndDestino')?.value),q=N($('movQtd').value),op=$('movOper').value;
+ if(!item)return toast('Selecione um item válido pela pesquisa');
+ if(!orig||q<=0)return toast('Informe posição e quantidade');
+ let lote=$('movLote').value||null,documento=$('movDoc').value||null,observacao=$('movObs').value||null;
+ if(op==='TRANSFERENCIA'){
+   if(!dest)return toast('Informe a posição de destino');
+   if(orig===dest)return toast('Origem e destino devem ser diferentes');
+   if(!confirm(`Transferir ${F(q)} entre posições?`))return;
+   let {error}=await sb.rpc('transferir_estoque_wms',{p_tipo_estoque:tipo,p_item_id:item,p_quantidade:q,p_endereco_origem_id:orig,p_endereco_destino_id:dest,p_lote:lote,p_documento:documento,p_observacao:observacao});
+   if(error)return toast(error.message);
+   toast('Transferência registrada');
+ }else{
+   let args={p_tipo_estoque:tipo,p_item_id:item,p_quantidade:q,p_endereco_wms_id:orig,p_lote:lote,p_documento:documento,p_observacao:observacao};
+   if(!confirm(`${op==='ENTRADA'?'Registrar entrada':'Registrar saída'} de ${F(q)}?`))return;
+   let {error}=await sb.rpc(op==='ENTRADA'?'entrada_estoque_wms':'saida_estoque_wms',args);
+   if(error)return toast(error.message);
+   toast(op==='ENTRADA'?'Entrada registrada':'Saída registrada')
+ }
+ $('movQtd').value='';$('movDoc').value='';$('movObs').value='';await load();preencherMovEnderecos()
+}
+function preencherConversaoMpPp(){
+ if(!$('convMp'))return;
+ let mpa=mps.filter(x=>x.ativo!==false),proda=produtos.filter(x=>x.ativo!==false);
+ $('convMp').innerHTML='<option value="">Selecione...</option>'+mpa.map(x=>`<option value="${x.id}">${E(x.codigo)} · ${E(x.descricao)}</option>`).join('');
+ $('convProd').innerHTML='<option value="">Selecione...</option>'+proda.map(x=>`<option value="${x.id}">${E(x.codigo)} · ${E(x.descricao)}</option>`).join('');
+ let lm=locais.find(x=>(x.codigo||'').toUpperCase()==='MP'),lp=locais.find(x=>(x.codigo||'').toUpperCase()==='PP');
+ let em=ends.filter(x=>x.ativo!==false&&(!lm||x.local_id===lm.id)),ep=ends.filter(x=>x.ativo!==false&&(!lp||x.local_id===lp.id));
+ $('convMpEnd').innerHTML='<option value="">Selecione...</option>'+em.map(x=>`<option value="${x.id}">${E(x.codigo)}</option>`).join('');
+ $('convPpEnd').innerHTML='<option value="">Selecione...</option>'+ep.map(x=>`<option value="${x.id}">${E(x.codigo)}</option>`).join(''); preencherConversaoLotes()
+}
+function preencherConversaoLotes(){
+ if(!$('convMpLote'))return; let mid=N($('convMp')?.value),eid=N($('convMpEnd')?.value);
+ let a=emp.filter(x=>(!mid||N(x.materia_prima_id)===mid)&&(!eid||N(x.endereco_wms_id)===eid)&&(N(x.quantidade)-N(x.reservado)-N(x.bloqueado)>0));
+ let lotes=[...new Set(a.map(x=>String(x.lote||'')).filter(Boolean))].sort(); $('convMpLote').innerHTML='<option value="">Selecione...</option>'+lotes.map(l=>`<option value="${E(l)}">${E(l)}</option>`).join('')
+}
+async function executarConversaoMpPp(){
+ let mpid=N($('convMp').value),mpend=N($('convMpEnd').value),mplote=$('convMpLote').value,mpq=N($('convMpQtd').value),pid=N($('convProd').value),ppq=N($('convPpQtd').value),pplote=$('convPpLote').value.trim(),ppend=N($('convPpEnd').value),doc=$('convDoc').value.trim()||null,obs=$('convObs').value.trim()||null;
+ if(!mpid||!mpend||!mplote||mpq<=0||!pid||ppq<=0||!pplote||!ppend)return toast('Preencha MP, posição/lote, quantidades, produto, lote PP e posição PP');
+ let mp=mps.find(x=>N(x.id)===mpid),pr=produtos.find(x=>N(x.id)===pid); if(!confirm(`Confirmar conversão?\n\nConsumir: ${F(mpq)} de ${mp?.codigo||'MP'} / lote ${mplote}\nGerar: ${F(ppq)} de ${pr?.codigo||'PP'} / lote ${pplote}`))return;
+ let {error}=await sb.rpc('converter_mp_para_pp',{p_materia_prima_id:mpid,p_endereco_mp_id:mpend,p_lote_mp:mplote,p_quantidade_mp:mpq,p_produto_id:pid,p_endereco_pp_id:ppend,p_lote_pp:pplote,p_quantidade_pp:ppq,p_documento:doc,p_observacao:obs}); if(error)return toast(error.message);
+ toast('Conversão concluída: MP baixada e PP gerado'); ['convMpQtd','convPpQtd','convPpLote','convDoc','convObs'].forEach(id=>$(id).value=''); await load()
+}
+async function loadMov(){let a=await Q('movimentacoes_estoque');a.sort((x,y)=>y.id-x.id);$('movLista').innerHTML=a.slice(0,100).map(x=>`<tr><td>${E((x.criado_em||'').slice(0,16).replace('T',' '))}</td><td>${E(x.tipo_estoque)}</td><td>${E(x.tipo_movimento)}</td><td>${F(x.quantidade)}</td><td>${E(x.lote)}</td><td>${E(x.documento)}</td></tr>`).join('')}if(window.supabase){
+ sb=window.supabase.createClient('https://wkfeikbybhcuvsexxrjx.supabase.co','sb_publishable_xy0w23lFJIywjFw0a9Msvg_w17LcZoI');
+ load().then(()=>novoPedido()).catch(e=>{console.error(e);toast('Erro de inicialização: '+e.message)});
+}else{
+ console.error('Biblioteca Supabase não carregou');
+ if($('conn')) $('conn').textContent='Erro de conexão';
+}
+
+
+let usuarioAtual=null,perfilAtual=null;
+async function carregarPerfilAuth(user){
+ usuarioAtual=user;
+ let {data,error}=await sb.from('perfis_usuarios').select('*').eq('user_id',user.id).eq('ativo',true).maybeSingle();
+ if(error||!data){perfilAtual=null;return false}
+ perfilAtual=data;return true
+}
+async function liberarSistemaAuth(){
+ let gate=$('authGate');if(gate)gate.style.display='none';
+ let conn=$('conn');if(conn&&perfilAtual)conn.title=`Usuário: ${perfilAtual.nome||usuarioAtual.email} · Perfil: ${perfilAtual.perfil}`;
+}
+async function verificarAuth(){
+ let {data:{session}}=await sb.auth.getSession();
+ if(!session){if($('authGate'))$('authGate').style.display='flex';return false}
+ let ok=await carregarPerfilAuth(session.user);
+ if(!ok){await sb.auth.signOut();if($('loginMsg'))$('loginMsg').textContent='Usuário sem perfil ativo no sistema.';return false}
+ await carregarPermissoesAtual();await liberarSistemaAuth();aplicarAcessosPerfil();aplicarPermissoesModulares();return true
+}
+async function fazerLogin(){
+ let login=$('loginEmail').value.trim().toLowerCase(),email=login.includes('@')?login:(login+'@usuarios.extraplast.local'),password=$('loginSenha').value;
+ $('loginMsg').textContent='Entrando...';
+ let {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(error){$('loginMsg').textContent='Acesso negado: '+error.message;return}
+ let ok=await carregarPerfilAuth(data.user);
+ if(!ok){await sb.auth.signOut();$('loginMsg').textContent='Usuário sem perfil ativo no sistema.';return}
+ $('loginMsg').textContent='';await carregarPermissoesAtual();await liberarSistemaAuth();aplicarAcessosPerfil();aplicarPermissoesModulares();await load();aplicarAcessosPerfil();aplicarPermissoesModulares()
+}
+async function sairSistema(){await sb.auth.signOut();location.reload()}
+
+const ACESSOS_PERFIL={
+ ADMINISTRADOR:['*'],
+ PRODUCAO:['Dashboard','Pedidos','Estoques','WMS','Produção','Cadastros','Movimentações'],
+ LOGISTICA:['Dashboard','Pedidos','Estoques','WMS','Programação de Cargas','Movimentações'],
+ ALMOXARIFADO:['Dashboard','Estoques','WMS','Almoxarifado','Cadastros','Movimentações'],
+ QUALIDADE:['Dashboard','Estoques','WMS','Cadastros','Movimentações'],
+ CONSULTA:['Dashboard','Pedidos','Estoques','WMS','Programação de Cargas']
+};
+function normalizaTxt(v){return String(v||'').replace(/\s+/g,' ').trim()}
+function aplicarAcessosPerfil(){
+ if(!perfilAtual)return;
+ let p=perfilAtual.perfil,permitidos=ACESSOS_PERFIL[p]||[];
+ if(permitidos.includes('*'))return;
+ document.querySelectorAll('nav button, .sidebar button, aside button').forEach(b=>{
+   let t=normalizaTxt(b.textContent);
+   if(!t)return;
+   let ok=permitidos.some(x=>t.toLowerCase().includes(x.toLowerCase()));
+   if(!ok)b.style.display='none';
+ });
+ document.querySelectorAll('[data-role-admin]').forEach(e=>e.style.display='none');
+}
+
+async function abrirGestaoUsuarios(btn){
+ if(!perfilAtual||perfilAtual.perfil!=='ADMINISTRADOR')return toast('Acesso restrito ao Administrador');
+ document.querySelectorAll('.nav,.page').forEach(x=>x.classList.remove('on'));let e=$('usuarios');if(e)e.classList.add('on');
+ if(btn)btn.classList.add('on');await carregarUsuariosSistema()
+}
+async function carregarUsuariosSistema(){
+ if(!perfilAtual||perfilAtual.perfil!=='ADMINISTRADOR')return;
+ let {data,error}=await sb.from('perfis_usuarios').select('*').order('nome');if(error)return toast(error.message);
+ let ps=['ADMINISTRADOR','PRODUCAO','LOGISTICA','ALMOXARIFADO','QUALIDADE','CONSULTA'];
+ $('usuariosLista').innerHTML=`<table><thead><tr><th>Nome</th><th>Perfil</th><th>Ativo</th><th>Permissões</th><th>Ação</th></tr></thead><tbody>${(data||[]).map(u=>`<tr><td><input id="un${u.id}" value="${E(u.nome||'')}"></td><td><select id="up${u.id}">${ps.map(p=>`<option ${p===u.perfil?'selected':''}>${p}</option>`).join('')}</select></td><td><select id="ua${u.id}"><option value="true" ${u.ativo?'selected':''}>Sim</option><option value="false" ${!u.ativo?'selected':''}>Não</option></select></td><td><button class="sec" onclick="abrirPermissoesUsuario(${u.id},'${u.user_id}')">Definir acessos</button></td><td><button class="pri" onclick="salvarPerfilUsuario(${u.id})">Salvar</button></td></tr>`).join('')}</tbody></table>`
+}
+async function salvarPerfilUsuario(id){
+ if(!perfilAtual||perfilAtual.perfil!=='ADMINISTRADOR')return toast('Acesso negado');
+ let nome=$('un'+id).value.trim(),perfil=$('up'+id).value,ativo=$('ua'+id).value==='true';if(!nome)return toast('Informe o nome');
+ if(N(id)===N(perfilAtual.id)&&(!ativo||perfil!=='ADMINISTRADOR'))return toast('Não é permitido remover o acesso Administrador do usuário atualmente conectado.');
+ let {error}=await sb.from('perfis_usuarios').update({nome,perfil,ativo}).eq('id',id);if(error)return toast(error.message);toast('Perfil atualizado');await carregarUsuariosSistema()
+}
+
+const MODULOS_SISTEMA=[
+ ['DASHBOARD','Dashboard'],['PEDIDOS','Pedidos'],['ESTOQUE','Estoque'],['WMS','WMS'],
+ ['CARGAS','Cargas'],['ALMOXARIFADO','Almoxarifado'],['CADASTROS','Cadastros'],
+ ['MOVIMENTACOES','Movimentações'],['USUARIOS','Usuários']
+];
+let permissoesUsuarioAtual=[],usuarioPermissaoEdicao=null;
+async function carregarPermissoesAtual(){
+ if(!usuarioAtual)return;
+ let {data,error}=await sb.from('usuario_permissoes').select('modulo,nivel').eq('user_id',usuarioAtual.id);
+ permissoesUsuarioAtual=error?[]:(data||[]);
+}
+function nivelModulo(mod){
+ if(perfilAtual?.perfil==='ADMINISTRADOR')return 'ALTERAR';
+ return permissoesUsuarioAtual.find(x=>x.modulo===mod)?.nivel||'NENHUM'
+}
+function podeAlterar(mod){return nivelModulo(mod)==='ALTERAR'}
+function aplicarPermissoesModulares(){
+ if(!perfilAtual)return;
+ const mapa={Dashboard:'DASHBOARD',Pedidos:'PEDIDOS',Estoque:'ESTOQUE',WMS:'WMS',Cargas:'CARGAS',Almoxarifado:'ALMOXARIFADO',Cadastros:'CADASTROS','Movimentações':'MOVIMENTACOES','Usuários':'USUARIOS'};
+ document.querySelectorAll('.nav').forEach(b=>{
+   let txt=normalizaTxt(b.textContent),key=Object.keys(mapa).find(k=>txt.includes(k));
+   if(key)b.style.display=nivelModulo(mapa[key])==='NENHUM'?'none':'';
+ });
+}
+async function abrirPermissoesUsuario(id,userId){
+ if(perfilAtual?.perfil!=='ADMINISTRADOR')return toast('Acesso restrito');
+ usuarioPermissaoEdicao={id,userId};
+ let u=(await sb.from('perfis_usuarios').select('*').eq('id',id).single()).data;
+ let {data,error}=await sb.from('usuario_permissoes').select('*').eq('user_id',userId);
+ if(error)return toast(error.message);data=data||[];
+ $('permissoesTitulo').textContent='Permissões · '+(u?.nome||'Usuário');
+ $('permissoesLista').innerHTML=`<table><thead><tr><th>Módulo</th><th>Nível de acesso</th></tr></thead><tbody>${MODULOS_SISTEMA.map(([cod,nome])=>{
+   let nivel=data.find(x=>x.modulo===cod)?.nivel||(u?.perfil==='ADMINISTRADOR'?'ALTERAR':'NENHUM');
+   return `<tr><td>${nome}</td><td><select id="perm_${cod}" ${u?.perfil==='ADMINISTRADOR'?'disabled':''}><option value="NENHUM" ${nivel==='NENHUM'?'selected':''}>Sem acesso</option><option value="CONSULTAR" ${nivel==='CONSULTAR'?'selected':''}>Somente consulta</option><option value="ALTERAR" ${nivel==='ALTERAR'?'selected':''}>Pode alterar</option></select></td></tr>`
+ }).join('')}</tbody></table>`;
+ $('permissoesBox').style.display='block';$('permissoesBox').scrollIntoView({behavior:'smooth',block:'start'})
+}
+async function salvarPermissoesUsuario(){
+ if(!usuarioPermissaoEdicao||perfilAtual?.perfil!=='ADMINISTRADOR')return;
+ let alvo=(await sb.from('perfis_usuarios').select('perfil').eq('id',usuarioPermissaoEdicao.id).single()).data;
+ if(alvo?.perfil==='ADMINISTRADOR')return toast('Administrador possui acesso total.');
+ let rows=MODULOS_SISTEMA.map(([modulo])=>({user_id:usuarioPermissaoEdicao.userId,modulo,nivel:$('perm_'+modulo).value}));
+ let {error}=await sb.from('usuario_permissoes').upsert(rows,{onConflict:'user_id,modulo'});
+ if(error)return toast(error.message);toast('Permissões salvas')
+}
+
+async function criarUsuarioSistema(){
+ if(perfilAtual?.perfil!=='ADMINISTRADOR')return toast('Acesso restrito ao Administrador');
+ let nome=$('novoUNome').value.trim(),usuario=$('novoUUsuario').value.trim().toLowerCase(),senha=$('novoUSenha').value,perfil=$('novoUPerfil').value;
+ if(!nome||!usuario||!senha)return toast('Preencha nome, usuário e senha');
+ if(!/^[a-z0-9._-]{3,30}$/.test(usuario))return toast('Usuário: use 3 a 30 caracteres, letras minúsculas, números, ponto, hífen ou _');
+ if(senha.length<6)return toast('A senha deve ter no mínimo 6 caracteres');
+ let {data,error}=await sb.functions.invoke('criar-usuario',{body:{nome,usuario,senha,perfil}});
+ if(error)return toast('Erro ao criar usuário: '+error.message);
+ if(data?.error)return toast(data.error);
+ toast('Usuário criado com sucesso');
+ $('novoUNome').value='';$('novoUUsuario').value='';$('novoUSenha').value='';
+ await carregarUsuariosSistema()
+}
+</script>
+<div id="authGate" style="position:fixed;inset:0;background:#f4f6f8;z-index:99999;display:flex;align-items:center;justify-content:center">
+ <div class="box" style="width:min(420px,92vw);padding:28px">
+  <h2 style="margin-top:0">EXTRAPLAST</h2><p class="muted">Acesso ao Sistema Integrado</p>
+  <label>Usuário</label><input id="loginEmail" autocomplete="username" placeholder="Seu usuário">
+  <label>Senha</label><input id="loginSenha" type="password" autocomplete="current-password" placeholder="Senha">
+  <div class="actions" style="margin-top:16px"><button class="pri" onclick="fazerLogin()">Entrar</button></div>
+  <div id="loginMsg" class="muted" style="margin-top:10px"></div>
+ </div>
+</div>
+</body></html>
